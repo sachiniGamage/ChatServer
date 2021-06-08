@@ -12,8 +12,8 @@ type MessagingService struct {
 	id string
 }
 
-func (s *MessagingService) ChatService(stream stub.ChatService_ChatServer) error {
-
+func (s *MessagingService) Chat(stream stub.ChatService_ChatServer) error {
+	fmt.Println("Function Triggered.")
 	for {
 		in, err := stream.Recv()
 		if err == io.EOF {
