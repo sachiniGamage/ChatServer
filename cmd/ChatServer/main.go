@@ -2,26 +2,42 @@ package main
 
 import (
 	"fmt"
+	"log"
+	"net"
 
-	"github.com/SachiniGamage/ChatServer/internal/messaging/cassandra"
+	"github.com/SachiniGamage/ChatServer/internal/messaging"
+	// "github.com/SachiniGamage/ChatServer/internal/messaging/cassandra"
+	"github.com/SachiniGamage/ChatServer/stub"
+	"google.golang.org/grpc"
 )
 
 func main() {
+
+	// cassandraSession := cassandra.Session
+	// defer cassandraSession.Close()
+
+	//---------
+
 	fmt.Println("hello world")
-	cassandra.DBConnection()
-	cassandra.Tables()
-	cassandra.TableInsertions()
+	messageService := &messaging.MessagingService{}
+	registerService := &messaging.AuthenticationService{}
 
-	// fmt.Println("hello world")
-	// messageService := &messaging.MessagingService{}
+	port := 50052
+	//listen for client request
+	lis, err := net.Listen("tcp", fmt.Sprintf("localhost:%d", port))
+	if err != nil {
+		log.Fatalf("failed to listen: %v", err)
+	}
+	var opts []grpc.ServerOption
 
-	// port := 50052
+	fmt.Println("hello world")
+	// cassandra.DBConnection()
+	// cassandra.Tables()
+	// cassandra.TableRegisterInsertions()
+	// cassandra.Tables()
 
-	// lis, err := net.Listen("tcp", fmt.Sprintf("localhost:%d", port))
-	// if err != nil {
-	// 	log.Fatalf("failed to listen: %v", err)
-	// }
-	// var opts []grpc.ServerOption
+	//--------
+
 	// // if *tls {
 	// // 	if *certFile == "" {
 	// // 		*certFile = data.Path("x509/server_cert.pem")
@@ -35,9 +51,25 @@ func main() {
 	// // 	}
 	// // 	opts = []grpc.ServerOption{grpc.Creds(creds)}
 	// // }
+
+	//-----------
+	// cassandra.ChatTableInsert()
+
+	//create an instance of the grpc server
 	// grpcServer := grpc.NewServer(opts...)
-	// stub.RegisterChatServiceServer(grpcServer, messageService)
+	// stub.RegisterChatServiceServer(grpcServer, &messaging.MessagingService{
+	// 	ChatMessage: make(map[string][]chan *stub.ChatMessageFromServer),
+	// })
+	// //blocking wait until process is killed
 	// grpcServer.Serve(lis)
+
+	//------------
+	grpcServer := grpc.NewServer(opts...)
+	stub.RegisterChatServiceServer(grpcServer, messageService)
+	stub.RegisterAuthenticateUserServer(grpcServer, registerService)
+	//blocking wait until process is killed
+	grpcServer.Serve(lis)
+	//-------------
 
 	//cassandra
 
