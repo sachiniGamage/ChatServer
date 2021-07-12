@@ -254,3 +254,125 @@ var AuthenticateUser_ServiceDesc = grpc.ServiceDesc{
 	Streams:  []grpc.StreamDesc{},
 	Metadata: "protobuf/service/messageService.proto",
 }
+
+// UpdateUserClient is the client API for UpdateUser service.
+//
+// For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
+type UpdateUserClient interface {
+	UpdateName(ctx context.Context, in *Edit, opts ...grpc.CallOption) (*RegisterUser, error)
+	AddFriend(ctx context.Context, in *FriendList, opts ...grpc.CallOption) (*FriendList, error)
+}
+
+type updateUserClient struct {
+	cc grpc.ClientConnInterface
+}
+
+func NewUpdateUserClient(cc grpc.ClientConnInterface) UpdateUserClient {
+	return &updateUserClient{cc}
+}
+
+func (c *updateUserClient) UpdateName(ctx context.Context, in *Edit, opts ...grpc.CallOption) (*RegisterUser, error) {
+	out := new(RegisterUser)
+	err := c.cc.Invoke(ctx, "/service.UpdateUser/UpdateName", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *updateUserClient) AddFriend(ctx context.Context, in *FriendList, opts ...grpc.CallOption) (*FriendList, error) {
+	out := new(FriendList)
+	err := c.cc.Invoke(ctx, "/service.UpdateUser/AddFriend", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+// UpdateUserServer is the server API for UpdateUser service.
+// All implementations must embed UnimplementedUpdateUserServer
+// for forward compatibility
+type UpdateUserServer interface {
+	UpdateName(context.Context, *Edit) (*RegisterUser, error)
+	AddFriend(context.Context, *FriendList) (*FriendList, error)
+	mustEmbedUnimplementedUpdateUserServer()
+}
+
+// UnimplementedUpdateUserServer must be embedded to have forward compatible implementations.
+type UnimplementedUpdateUserServer struct {
+}
+
+func (UnimplementedUpdateUserServer) UpdateName(context.Context, *Edit) (*RegisterUser, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method UpdateName not implemented")
+}
+func (UnimplementedUpdateUserServer) AddFriend(context.Context, *FriendList) (*FriendList, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method AddFriend not implemented")
+}
+func (UnimplementedUpdateUserServer) mustEmbedUnimplementedUpdateUserServer() {}
+
+// UnsafeUpdateUserServer may be embedded to opt out of forward compatibility for this service.
+// Use of this interface is not recommended, as added methods to UpdateUserServer will
+// result in compilation errors.
+type UnsafeUpdateUserServer interface {
+	mustEmbedUnimplementedUpdateUserServer()
+}
+
+func RegisterUpdateUserServer(s grpc.ServiceRegistrar, srv UpdateUserServer) {
+	s.RegisterService(&UpdateUser_ServiceDesc, srv)
+}
+
+func _UpdateUser_UpdateName_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(Edit)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(UpdateUserServer).UpdateName(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/service.UpdateUser/UpdateName",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(UpdateUserServer).UpdateName(ctx, req.(*Edit))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _UpdateUser_AddFriend_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(FriendList)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(UpdateUserServer).AddFriend(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/service.UpdateUser/AddFriend",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(UpdateUserServer).AddFriend(ctx, req.(*FriendList))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+// UpdateUser_ServiceDesc is the grpc.ServiceDesc for UpdateUser service.
+// It's only intended for direct use with grpc.RegisterService,
+// and not to be introspected or modified (even as a copy)
+var UpdateUser_ServiceDesc = grpc.ServiceDesc{
+	ServiceName: "service.UpdateUser",
+	HandlerType: (*UpdateUserServer)(nil),
+	Methods: []grpc.MethodDesc{
+		{
+			MethodName: "UpdateName",
+			Handler:    _UpdateUser_UpdateName_Handler,
+		},
+		{
+			MethodName: "AddFriend",
+			Handler:    _UpdateUser_AddFriend_Handler,
+		},
+	},
+	Streams:  []grpc.StreamDesc{},
+	Metadata: "protobuf/service/messageService.proto",
+}
