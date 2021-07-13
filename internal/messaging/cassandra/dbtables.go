@@ -34,7 +34,7 @@ func Tables() {
 	}
 	err = session.Query("CREATE TABLE register( registerID int, password text, userEmail text, userName text, PRIMARY KEY(userEmail));").Exec()
 	err = session.Query("CREATE TABLE chatdb( registerID int, chatID uuid,msgID uuid, fromUser text, toUser text ,msg text, username text,time timestamp, PRIMARY KEY((fromUser,toUser),time)) WITH CLUSTERING ORDER BY(time DESC);").Exec()
-	err = session.Query("CREATE TABLE friends(emailF text, friendName text , PRIMARY KEY(emailF));").Exec()
+	err = session.Query("CREATE TABLE friends(emailF1 text,myemail text, friendName text , PRIMARY KEY(emailF1,myemail));").Exec()
 	if err != nil {
 		log.Println(err)
 	}
@@ -155,7 +155,7 @@ func AddFriend(email string) string {
 	} else if (iter.NumRows()) == 1 {
 
 		iter.Scan(&username)
-		err := session.Query("INSERT INTO friends(emailF) VALUES(?);", email).Exec()
+		err := session.Query("INSERT INTO friends(emailF1,friendName) VALUES(?,?);", email, username).Exec()
 		log.Println("Friend added")
 		iter.Scan()
 		if err != nil {
@@ -175,22 +175,30 @@ func AddFriend(email string) string {
 	return username
 }
 
-func ViewFriendList() string {
+func ViewFriendList(email string) [][2]string {
 	Tables()
 
-	var friendName string
+	var friends [][2]string
+
 	if session == nil {
 		log.Println("session not available")
 	}
 	log.Println("session available")
 
-	iter := session.Query("SELECT friendname FROM friends;").Iter()
+	Scanner := session.Query("SELECT emailF1,friendname FROM friends where myemail= ?;", email).Iter().Scanner()
 
-	iter.Scan(&friendName)
+	for Scanner.Next() {
 
-	return friendName
+		var (
+			friendEntry [2]string
+		)
+		Scanner.Scan(&friendEntry[0], &friendEntry[1])
+
+		friends = append(friends, friendEntry)
+
+	}
 
 	time_output := session.Query("SELECT * FROM friends;").Iter()
 	fmt.Println("output: ", time_output)
-
+	return friends
 }

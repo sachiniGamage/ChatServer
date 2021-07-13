@@ -261,6 +261,7 @@ var AuthenticateUser_ServiceDesc = grpc.ServiceDesc{
 type UpdateUserClient interface {
 	UpdateName(ctx context.Context, in *Edit, opts ...grpc.CallOption) (*RegisterUser, error)
 	AddFriend(ctx context.Context, in *FriendList, opts ...grpc.CallOption) (*FriendList, error)
+	GetFriends(ctx context.Context, in *ViewFriends, opts ...grpc.CallOption) (*ViewFriends, error)
 }
 
 type updateUserClient struct {
@@ -289,12 +290,22 @@ func (c *updateUserClient) AddFriend(ctx context.Context, in *FriendList, opts .
 	return out, nil
 }
 
+func (c *updateUserClient) GetFriends(ctx context.Context, in *ViewFriends, opts ...grpc.CallOption) (*ViewFriends, error) {
+	out := new(ViewFriends)
+	err := c.cc.Invoke(ctx, "/service.UpdateUser/GetFriends", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // UpdateUserServer is the server API for UpdateUser service.
 // All implementations must embed UnimplementedUpdateUserServer
 // for forward compatibility
 type UpdateUserServer interface {
 	UpdateName(context.Context, *Edit) (*RegisterUser, error)
 	AddFriend(context.Context, *FriendList) (*FriendList, error)
+	GetFriends(context.Context, *ViewFriends) (*ViewFriends, error)
 	mustEmbedUnimplementedUpdateUserServer()
 }
 
@@ -307,6 +318,9 @@ func (UnimplementedUpdateUserServer) UpdateName(context.Context, *Edit) (*Regist
 }
 func (UnimplementedUpdateUserServer) AddFriend(context.Context, *FriendList) (*FriendList, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method AddFriend not implemented")
+}
+func (UnimplementedUpdateUserServer) GetFriends(context.Context, *ViewFriends) (*ViewFriends, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetFriends not implemented")
 }
 func (UnimplementedUpdateUserServer) mustEmbedUnimplementedUpdateUserServer() {}
 
@@ -357,6 +371,24 @@ func _UpdateUser_AddFriend_Handler(srv interface{}, ctx context.Context, dec fun
 	return interceptor(ctx, in, info, handler)
 }
 
+func _UpdateUser_GetFriends_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ViewFriends)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(UpdateUserServer).GetFriends(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/service.UpdateUser/GetFriends",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(UpdateUserServer).GetFriends(ctx, req.(*ViewFriends))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // UpdateUser_ServiceDesc is the grpc.ServiceDesc for UpdateUser service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -371,6 +403,10 @@ var UpdateUser_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "AddFriend",
 			Handler:    _UpdateUser_AddFriend_Handler,
+		},
+		{
+			MethodName: "GetFriends",
+			Handler:    _UpdateUser_GetFriends_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

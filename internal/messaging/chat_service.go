@@ -135,3 +135,25 @@ func (s *EditService) AddFriend(ctx context.Context, in *stub.FriendList) (*stub
 	}
 
 }
+
+func (s *EditService) GetFriends(ctx context.Context, in *stub.ViewFriends) (*stub.ViewFriends, error) {
+	fmt.Println("get friends Function Triggered.")
+
+	getFrnd := stub.ViewFriends{
+		// friendsInList : &stub.RegisterUser{},
+	}
+	getFrnd.FriendsInList = in.FriendsInList
+	frientArray := cassandra.ViewFriendList(in.Myemail)
+
+	var regUserArray []*stub.RegisterUser
+	for _, friendEntry := range frientArray {
+		regUser := &stub.RegisterUser{}
+		regUser.Email = friendEntry[0]
+		regUser.Username = friendEntry[1]
+		regUserArray = append(regUserArray, regUser)
+	}
+	finalFriendList := &stub.ViewFriends{
+		FriendsInList: regUserArray,
+	}
+	return finalFriendList, nil
+}
