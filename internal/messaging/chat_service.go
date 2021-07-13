@@ -3,6 +3,7 @@ package messaging
 import (
 	"context"
 	"fmt"
+	"log"
 
 	// "go/token"
 	"io"
@@ -54,9 +55,8 @@ func (s *MessagingService) Chat(stream stub.ChatService_ChatServer) error {
 		msg := stub.ChatMessageFromServer{
 			Message: &stub.ChatMessage{},
 		}
-
-		cassandra.ChatTableInsert(in.Message)
-		// cassandra.TableRegisterInsertions(in.From)
+		// TODO: set fromuser and touser in parameters
+		// cassandra.ChatTableInsert(in.Message)
 
 		msg.Message.Message = "received " + in.Message
 		if sendErr := stream.Send(&msg); sendErr != nil {
@@ -119,8 +119,19 @@ func (s *EditService) AddFriend(ctx context.Context, in *stub.FriendList) (*stub
 	updt := stub.FriendList{
 		Username: &stub.RegisterUser{},
 	}
-	updt.Username = in.Username
-	cassandra.AddFriend(in.FriendsEmail)
 
-	return &updt, nil
+	// cassandra.AddFriend(in.FriendsEmail)
+
+	var getname string
+	getname = cassandra.AddFriend(in.FriendsEmail)
+
+	if getname != "" {
+		updt.Username.Username = getname
+		log.Println("friend added - chatservice.go")
+		log.Println(updt.Username.Username)
+		return &updt, nil
+	} else {
+		return nil, nil
+	}
+
 }
