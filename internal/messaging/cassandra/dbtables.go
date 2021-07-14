@@ -139,15 +139,17 @@ func UpdateName(name string) {
 
 }
 
-func AddFriend(email string) string {
+func AddFriend(emailf string, myemail string) string {
 	Tables()
-	var username string
+	var (
+		username string
+	)
 	if session == nil {
 		log.Println("session not available")
 	}
 	log.Println("session available")
 
-	iter := session.Query("SELECT username FROM register where useremail = ? ALLOW FILTERING;", email).Iter()
+	iter := session.Query("SELECT username FROM register where useremail = ? ALLOW FILTERING;", emailf).Iter()
 
 	if (iter.NumRows()) == 0 {
 		log.Println("No such friend")
@@ -155,7 +157,7 @@ func AddFriend(email string) string {
 	} else if (iter.NumRows()) == 1 {
 
 		iter.Scan(&username)
-		err := session.Query("INSERT INTO friends(emailF1,friendName) VALUES(?,?);", email, username).Exec()
+		err := session.Query("INSERT INTO friends(emailF1,myemail,friendName) VALUES(?,?,?);", emailf, myemail, username).Exec()
 		log.Println("Friend added")
 		iter.Scan()
 		if err != nil {
@@ -185,7 +187,7 @@ func ViewFriendList(email string) [][2]string {
 	}
 	log.Println("session available")
 
-	Scanner := session.Query("SELECT emailF1,friendname FROM friends where myemail= ?;", email).Iter().Scanner()
+	Scanner := session.Query("SELECT emailF1,friendname FROM friends where myemail= ? ALLOW FILTERING;", email).Iter().Scanner()
 
 	for Scanner.Next() {
 

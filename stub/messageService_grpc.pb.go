@@ -260,7 +260,7 @@ var AuthenticateUser_ServiceDesc = grpc.ServiceDesc{
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type UpdateUserClient interface {
 	UpdateName(ctx context.Context, in *Edit, opts ...grpc.CallOption) (*RegisterUser, error)
-	AddFriend(ctx context.Context, in *FriendList, opts ...grpc.CallOption) (*FriendList, error)
+	AddFriend(ctx context.Context, in *AddFriendReq, opts ...grpc.CallOption) (*AddFriendReq, error)
 	GetFriends(ctx context.Context, in *ViewFriends, opts ...grpc.CallOption) (*ViewFriends, error)
 }
 
@@ -281,8 +281,8 @@ func (c *updateUserClient) UpdateName(ctx context.Context, in *Edit, opts ...grp
 	return out, nil
 }
 
-func (c *updateUserClient) AddFriend(ctx context.Context, in *FriendList, opts ...grpc.CallOption) (*FriendList, error) {
-	out := new(FriendList)
+func (c *updateUserClient) AddFriend(ctx context.Context, in *AddFriendReq, opts ...grpc.CallOption) (*AddFriendReq, error) {
+	out := new(AddFriendReq)
 	err := c.cc.Invoke(ctx, "/service.UpdateUser/AddFriend", in, out, opts...)
 	if err != nil {
 		return nil, err
@@ -304,7 +304,7 @@ func (c *updateUserClient) GetFriends(ctx context.Context, in *ViewFriends, opts
 // for forward compatibility
 type UpdateUserServer interface {
 	UpdateName(context.Context, *Edit) (*RegisterUser, error)
-	AddFriend(context.Context, *FriendList) (*FriendList, error)
+	AddFriend(context.Context, *AddFriendReq) (*AddFriendReq, error)
 	GetFriends(context.Context, *ViewFriends) (*ViewFriends, error)
 	mustEmbedUnimplementedUpdateUserServer()
 }
@@ -316,7 +316,7 @@ type UnimplementedUpdateUserServer struct {
 func (UnimplementedUpdateUserServer) UpdateName(context.Context, *Edit) (*RegisterUser, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method UpdateName not implemented")
 }
-func (UnimplementedUpdateUserServer) AddFriend(context.Context, *FriendList) (*FriendList, error) {
+func (UnimplementedUpdateUserServer) AddFriend(context.Context, *AddFriendReq) (*AddFriendReq, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method AddFriend not implemented")
 }
 func (UnimplementedUpdateUserServer) GetFriends(context.Context, *ViewFriends) (*ViewFriends, error) {
@@ -354,7 +354,7 @@ func _UpdateUser_UpdateName_Handler(srv interface{}, ctx context.Context, dec fu
 }
 
 func _UpdateUser_AddFriend_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(FriendList)
+	in := new(AddFriendReq)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
@@ -366,7 +366,7 @@ func _UpdateUser_AddFriend_Handler(srv interface{}, ctx context.Context, dec fun
 		FullMethod: "/service.UpdateUser/AddFriend",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(UpdateUserServer).AddFriend(ctx, req.(*FriendList))
+		return srv.(UpdateUserServer).AddFriend(ctx, req.(*AddFriendReq))
 	}
 	return interceptor(ctx, in, info, handler)
 }

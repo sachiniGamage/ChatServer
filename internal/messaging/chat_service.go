@@ -113,22 +113,28 @@ func (s *EditService) UpdateName(ctx context.Context, in *stub.Edit) (*stub.Regi
 	return &stub.RegisterUser{}, nil
 }
 
-func (s *EditService) AddFriend(ctx context.Context, in *stub.FriendList) (*stub.FriendList, error) {
+func (s *EditService) AddFriend(ctx context.Context, in *stub.AddFriendReq) (*stub.AddFriendReq, error) {
 	fmt.Println("Add friend Function Triggered.")
 
-	updt := stub.FriendList{
-		Username: &stub.RegisterUser{},
+	updt := stub.AddFriendReq{
+		Detail: &stub.FriendList{
+			Username: in.Detail.Username,
+		},
 	}
 
 	// cassandra.AddFriend(in.FriendsEmail)
 
-	var getname string
-	getname = cassandra.AddFriend(in.FriendsEmail)
+	// var getname string
+
+	getname := cassandra.AddFriend(in.Detail.FriendsEmail, in.Myemail)
 
 	if getname != "" {
-		updt.Username.Username = getname
+		regUser := &stub.RegisterUser{
+			Username: getname,
+		}
+		updt.Detail.Username = regUser
 		log.Println("friend added - chatservice.go")
-		log.Println(updt.Username.Username)
+		log.Println(updt.Detail.Username)
 		return &updt, nil
 	} else {
 		return nil, nil
