@@ -56,9 +56,9 @@ func (s *MessagingService) Chat(stream stub.ChatService_ChatServer) error {
 			Message: &stub.ChatMessage{},
 		}
 		// TODO: set fromuser and touser in parameters
-		// cassandra.ChatTableInsert(in.Message)
+		cassandra.ChatTableInsert(in.From, in.To, in.Message)
 
-		msg.Message.Message = "received " + in.Message
+		msg.Message.Message = "received " + in.Message + in.From + in.To
 		if sendErr := stream.Send(&msg); sendErr != nil {
 			return sendErr
 		}

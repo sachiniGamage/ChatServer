@@ -63,28 +63,51 @@ func TableRegisterInsertions(password string, email string, username string) {
 
 //insert to chat db
 //([]string)
-func ChatTableInsert(fromUser string, toUser string, sendmsg string) {
+func ChatTableInsert(fromUser string, toUser string, sendmsg string) string {
 	Tables()
 
+	var (
+		msg  string
+		msg2 string
+	)
 	err := session.Query("INSERT INTO chatdb(fromUser,toUser,time,chatid,msg,msgid,registerid,username) VALUES(?,?,toUnixTimestamp(now()), now(),?,now(), 1, 'a');", fromUser, toUser, sendmsg).Exec()
 	// err := session.Query("INSERT INTO chatdb(registerid,chatid,msgid,fromUser,toUser,msg,username,time) VALUES(1,1,now(),?,?,?,'a',toUnixTimestamp(now()));", fromUser, toUser, sendmsg).Exec()
 	iter := session.Query("Select msg from chatdb where fromuser = ? and touser = ? order by time ALLOW FILTERING;", fromUser, toUser).Iter()
 
+	iter2 := session.Query("Select msg from chatdb where  touser = ? and fromuser = ? order by time ALLOW FILTERING;", toUser, fromUser).Iter()
+
+	iter.Scan(&msg)
+	iter2.Scan(&msg2)
 	for {
-
 		if iter != nil {
-
 			log.Println(iter)
-			// return "true"
+
+			if iter2 != nil {
+				log.Println(iter2)
+				return msg2
+			}
+			return msg
 		}
 		if err != nil {
 			log.Println(err)
 			// return
 		}
-
 	}
 	time_output := session.Query("SELECT * FROM chatdb;").Iter()
 	fmt.Println("output: ", time_output)
+	return msg
+}
+
+func GetMsg() {
+	Tables()
+	if session == nil {
+		log.Println("session not available")
+	}
+	log.Println("session available")
+
+	// iter := session.Query("select msg from chatdb where fromuser='s' and touser='u' ;").Iter()
+	// iter1:= session.Query("select msg from chatdb where fromuser='u' and touser='s' ;").Iter()
+
 }
 
 //login
