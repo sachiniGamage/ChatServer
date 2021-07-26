@@ -51,14 +51,15 @@ func (s *MessagingService) Chat(stream stub.ChatService_ChatServer) error {
 		// if in == nil {
 		// 	continue
 		// }
-		fmt.Println("Inbound Message is " + in.From + ":" + in.Message)
+		fmt.Println("Inbound Message is " + in.From + ":" + in.Message + " To: " + in.To)
 		msg := stub.ChatMessageFromServer{
 			Message: &stub.ChatMessage{},
 		}
 		// TODO: set fromuser and touser in parameters
 		cassandra.ChatTableInsert(in.From, in.To, in.Message)
 
-		msg.Message.Message = "received " + in.Message + in.From + in.To
+		msg.Message.Message = "received " + in.Message + "..." + in.From + "..." + in.To
+
 		if sendErr := stream.Send(&msg); sendErr != nil {
 			return sendErr
 		}

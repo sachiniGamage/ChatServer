@@ -63,12 +63,14 @@ func TableRegisterInsertions(password string, email string, username string) {
 
 //insert to chat db
 //([]string)
-func ChatTableInsert(fromUser string, toUser string, sendmsg string) string {
+func ChatTableInsert(fromUser string, toUser string, sendmsg string) []string {
 	Tables()
 
 	var (
-		msg  string
-		msg2 string
+		msg      string
+		msg2     string
+		msgArray []string
+		count    int
 	)
 	err := session.Query("INSERT INTO chatdb(fromUser,toUser,time,chatid,msg,msgid,registerid,username) VALUES(?,?,toUnixTimestamp(now()), now(),?,now(), 1, 'a');", fromUser, toUser, sendmsg).Exec()
 	// err := session.Query("INSERT INTO chatdb(registerid,chatid,msgid,fromUser,toUser,msg,username,time) VALUES(1,1,now(),?,?,?,'a',toUnixTimestamp(now()));", fromUser, toUser, sendmsg).Exec()
@@ -76,26 +78,47 @@ func ChatTableInsert(fromUser string, toUser string, sendmsg string) string {
 
 	iter2 := session.Query("Select msg from chatdb where  touser = ? and fromuser = ? order by time ALLOW FILTERING;", toUser, fromUser).Iter()
 
-	iter.Scan(&msg)
-	iter2.Scan(&msg2)
-	for {
-		if iter != nil {
-			log.Println(iter)
+	scanner := iter.Scanner()
+	scanner2 := iter2.Scanner()
 
-			if iter2 != nil {
-				log.Println(iter2)
-				return msg2
-			}
-			return msg
-		}
+	for scanner.Next() {
+		err := scanner.Scan(&msg)
 		if err != nil {
-			log.Println(err)
-			// return
+			log.Println("iter ")
+		}
+		msgArray = append(msgArray, msg)
+
+		count++
+		if count == 50 {
+			break
 		}
 	}
-	time_output := session.Query("SELECT * FROM chatdb;").Iter()
-	fmt.Println("output: ", time_output)
-	return msg
+	// iter.Scan(&msg)
+	// iter2.Scan(&msg2)
+	count = 0
+	for scanner2.Next() {
+		err := scanner2.Scan(&msg2)
+		if err != nil {
+			log.Println("iter ")
+		}
+		msgArray = append(msgArray, msg2)
+		count++
+		if count == 50 {
+			break
+		}
+		log.Println(msgArray)
+		// if iter2 != nil {
+		// 	log.Println("iter 2 : " + msg2)
+		// 	return msg2
+		// }
+
+	}
+	if err != nil {
+		log.Println(err)
+		// return
+	}
+
+	return msgArray
 }
 
 func GetMsg() {
