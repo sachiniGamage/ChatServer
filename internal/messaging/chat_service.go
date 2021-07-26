@@ -47,11 +47,12 @@ func (s *MessagingService) Chat(stream stub.ChatService_ChatServer) error {
 		fmt.Println("msg recieved")
 		if err != nil {
 			fmt.Println(err)
+			return err
 		}
 		// if in == nil {
 		// 	continue
 		// }
-		fmt.Println("Inbound Message is " + in.From + ":" + in.Message + " To: " + in.To)
+		// fmt.Println("Inbound Message is " + in.From + ":" + in.Message + " To: " + in.To)
 		msg := stub.ChatMessageFromServer{
 			Message: &stub.ChatMessage{},
 		}
