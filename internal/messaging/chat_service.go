@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"sync"
 
 	// "go/token"
 	"io"
@@ -36,9 +37,50 @@ type EditService struct {
 	stub.UnimplementedUpdateUserServer
 }
 
+type RecieveMsg struct {
+	from    string
+	message string
+}
+
+var doOnce sync.Once
+var channelMap map[string]chan RecieveMsg
+
+func init() {
+	channelMap = make(map[string]chan RecieveMsg)
+}
+
+func chatRecieve(sendStream stub.ChatService_ChatServer, user string) {
+	doOnce.Do(func() {
+		c, ok := channelMap[user]
+		if !ok {
+			c = make(chan RecieveMsg)
+			channelMap[user] = c
+		}
+		for i := range c {
+
+			msg := stub.ChatMessageFromServer{
+				Message: &stub.ChatMessage{
+					Message: i.message,
+					From:    i.from,
+				},
+				From: &stub.ChatMessage{},
+			}
+
+			msg.Message.Message = i.message
+			log.Println("message: " + msg.Message.Message)
+			if sendErr := sendStream.Send(&msg); sendErr != nil {
+				fmt.Println(sendErr)
+			}
+		}
+	})
+
+}
+
 func (s *MessagingService) Chat(stream stub.ChatService_ChatServer) error {
 	fmt.Println("Function Triggered.")
+
 	for {
+
 		in, err := stream.Recv()
 		if err == io.EOF {
 			fmt.Println("stream has ended")
@@ -49,6 +91,15 @@ func (s *MessagingService) Chat(stream stub.ChatService_ChatServer) error {
 			fmt.Println(err)
 			return err
 		}
+
+		go chatRecieve(stream, in.From)
+
+		toChannel, ok := channelMap[in.To]
+		if !ok {
+			toChannel = make(chan RecieveMsg, 1000)
+			channelMap[in.To] = toChannel
+		}
+
 		// if in == nil {
 		// 	continue
 		// }
@@ -56,6 +107,14 @@ func (s *MessagingService) Chat(stream stub.ChatService_ChatServer) error {
 		msg := stub.ChatMessageFromServer{
 			Message: &stub.ChatMessage{},
 		}
+
+		var recMsg RecieveMsg
+		recMsg = RecieveMsg{
+			from:    in.From,
+			message: in.Message,
+		}
+		toChannel <- recMsg
+
 		// TODO: set fromuser and touser in parameters
 		cassandra.ChatTableInsert(in.From, in.To, in.Message)
 
