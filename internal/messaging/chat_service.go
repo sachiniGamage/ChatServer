@@ -42,7 +42,7 @@ type RecieveMsg struct {
 	message string
 }
 
-var doOnce sync.Once
+var doOnce map[string]sync.Once
 var channelMap map[string]chan RecieveMsg
 
 func init() {
@@ -50,7 +50,8 @@ func init() {
 }
 
 func chatRecieve(sendStream stub.ChatService_ChatServer, user string) {
-	doOnce.Do(func() {
+	currentOnce := doOnce[user]
+	currentOnce.Do(func() {
 		c, ok := channelMap[user]
 		if !ok {
 			c = make(chan RecieveMsg)
@@ -67,7 +68,7 @@ func chatRecieve(sendStream stub.ChatService_ChatServer, user string) {
 			}
 
 			msg.Message.Message = i.message
-			log.Println("message: " + msg.Message.Message)
+			log.Println("message: " + msg.Message.Message + "From : " + i.from)
 			if sendErr := sendStream.Send(&msg); sendErr != nil {
 				fmt.Println(sendErr)
 			}
@@ -93,6 +94,7 @@ func (s *MessagingService) Chat(stream stub.ChatService_ChatServer) error {
 		}
 
 		go chatRecieve(stream, in.From)
+		// go chatRecieve(stream, in.To)
 		toChannel, ok := channelMap[in.To]
 		if !ok {
 			toChannel = make(chan RecieveMsg, 1000)
@@ -118,7 +120,8 @@ func (s *MessagingService) Chat(stream stub.ChatService_ChatServer) error {
 		cassandra.ChatTableInsert(in.From, in.To, in.Message)
 
 		fmt.Println(in.From)
-		msg.Message.To = in.To
+		msg.Message.From = in.From
+		// msg.Message.To = in.To
 		msg.Message.Message = in.Message
 
 		if sendErr := stream.Send(&msg); sendErr != nil {
