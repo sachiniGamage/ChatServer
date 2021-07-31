@@ -63,7 +63,7 @@ func chatRecieve(sendStream stub.ChatService_ChatServer, user string) {
 					Message: i.message,
 					From:    i.from,
 				},
-				From: &stub.ChatMessage{},
+				// From: &stub.ChatMessage{},
 			}
 
 			msg.Message.Message = i.message
@@ -93,7 +93,6 @@ func (s *MessagingService) Chat(stream stub.ChatService_ChatServer) error {
 		}
 
 		go chatRecieve(stream, in.From)
-
 		toChannel, ok := channelMap[in.To]
 		if !ok {
 			toChannel = make(chan RecieveMsg, 1000)
@@ -118,7 +117,9 @@ func (s *MessagingService) Chat(stream stub.ChatService_ChatServer) error {
 		// TODO: set fromuser and touser in parameters
 		cassandra.ChatTableInsert(in.From, in.To, in.Message)
 
-		msg.Message.Message = "received " + in.Message + "..." + in.From + "..." + in.To
+		fmt.Println(in.From)
+		msg.Message.To = in.To
+		msg.Message.Message = in.Message
 
 		if sendErr := stream.Send(&msg); sendErr != nil {
 			return sendErr
