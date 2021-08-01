@@ -16,6 +16,8 @@ import (
 
 	// "google.golang.org/grpc"
 	// "google.golang.org/grpc/credentials/oauth"
+
+	"google.golang.org/grpc/metadata"
 	"google.golang.org/protobuf/types/known/emptypb"
 )
 
@@ -42,6 +44,7 @@ type RecieveMsg struct {
 	message string
 }
 
+var values []string
 var doOnce map[string]sync.Once
 var channelMap map[string]chan RecieveMsg
 
@@ -50,35 +53,45 @@ func init() {
 }
 
 func chatRecieve(sendStream stub.ChatService_ChatServer, user string) {
-	currentOnce := doOnce[user]
-	currentOnce.Do(func() {
-		c, ok := channelMap[user]
-		if !ok {
-			c = make(chan RecieveMsg)
-			channelMap[user] = c
-		}
-		for i := range c {
+	// currentOnce := doOnce[user]
+	log.Println("start a chat receiveing channel for user: " + user)
+	// currentOnce.Do(func() {
+	c, ok := channelMap[user]
+	if !ok {
+		c = make(chan RecieveMsg)
+		channelMap[user] = c
+	}
+	for i := range c {
 
-			msg := stub.ChatMessageFromServer{
-				Message: &stub.ChatMessage{
-					Message: i.message,
-					From:    i.from,
-				},
-				// From: &stub.ChatMessage{},
-			}
-
-			msg.Message.Message = i.message
-			log.Println("message: " + msg.Message.Message + "From : " + i.from)
-			if sendErr := sendStream.Send(&msg); sendErr != nil {
-				fmt.Println(sendErr)
-			}
+		msg := stub.ChatMessageFromServer{
+			Message: &stub.ChatMessage{
+				Message: i.message,
+				From:    i.from,
+			},
+			// From: &stub.ChatMessage{},
 		}
-	})
+
+		msg.Message.Message = i.message
+		log.Println("Received msg: " + msg.Message.Message + "from :" + i.from + " is forwarded to the the user: " + user)
+		if sendErr := sendStream.Send(&msg); sendErr != nil {
+			fmt.Println(sendErr)
+		}
+	}
+	// })
 
 }
 
 func (s *MessagingService) Chat(stream stub.ChatService_ChatServer) error {
-	fmt.Println("Function Triggered.")
+
+	md, ok := metadata.FromIncomingContext(stream.Context())
+	if ok {
+		values = md.Get("fromuser")
+		fmt.Println(values)
+	}
+
+	log.Println("Chat method invocation from: " + values[0])
+
+	go chatRecieve(stream, values[0])
 
 	for {
 
@@ -87,19 +100,20 @@ func (s *MessagingService) Chat(stream stub.ChatService_ChatServer) error {
 			fmt.Println("stream has ended")
 			return nil
 		}
-		fmt.Println("msg recieved")
 		if err != nil {
-			fmt.Println(err)
+			fmt.Println(" Error received from channel from user stream: "+values[0], err)
 			return err
 		}
-
-		go chatRecieve(stream, in.From)
+		fmt.Println("Chat message is recieved from chat method: " + in.Message + " From: " + in.From + " To: " + in.To + " From User stream: " + values[0])
 		// go chatRecieve(stream, in.To)
 		toChannel, ok := channelMap[in.To]
 		if !ok {
 			toChannel = make(chan RecieveMsg, 1000)
+			fmt.Println(" To Channel is created for : " + in.To)
 			channelMap[in.To] = toChannel
+
 		}
+		// fmt.Println("not ok")
 
 		// if in == nil {
 		// 	continue
@@ -115,11 +129,13 @@ func (s *MessagingService) Chat(stream stub.ChatService_ChatServer) error {
 			message: in.Message,
 		}
 		toChannel <- recMsg
+		log.Println("Add message: " + in.Message + " From: " + in.From + " to receiveMessage Channel")
 
 		// TODO: set fromuser and touser in parameters
 		cassandra.ChatTableInsert(in.From, in.To, in.Message)
 
-		fmt.Println(in.From)
+		// sendMetadata := metadata.
+
 		msg.Message.From = in.From
 		// msg.Message.To = in.To
 		msg.Message.Message = in.Message
