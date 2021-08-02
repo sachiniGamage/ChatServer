@@ -42,6 +42,7 @@ type EditService struct {
 type RecieveMsg struct {
 	from    string
 	message string
+	to      string
 }
 
 var values []string
@@ -61,6 +62,26 @@ func chatRecieve(sendStream stub.ChatService_ChatServer, user string) {
 		c = make(chan RecieveMsg)
 		channelMap[user] = c
 	}
+	userRelatedMsgs := cassandra.ChatRetrieve(user)
+
+	for _, s := range userRelatedMsgs {
+		if s.To != user {
+			continue
+		}
+		msg := stub.ChatMessageFromServer{
+			Message: &stub.ChatMessage{
+				Message: s.Message,
+				From:    s.From,
+				To:      s.To,
+			},
+		}
+		msg.Message.Message = s.Message
+		log.Println("ChatReceived msg: " + msg.Message.Message + "from :" + s.From + " is forwarded to the the user: " + user)
+		if sendErr := sendStream.Send(&msg); sendErr != nil {
+			fmt.Println(sendErr)
+		}
+	}
+
 	for i := range c {
 
 		msg := stub.ChatMessageFromServer{
@@ -127,14 +148,13 @@ func (s *MessagingService) Chat(stream stub.ChatService_ChatServer) error {
 		recMsg = RecieveMsg{
 			from:    in.From,
 			message: in.Message,
+			to:      in.To,
 		}
 		toChannel <- recMsg
+
 		log.Println("Add message: " + in.Message + " From: " + in.From + " to receiveMessage Channel")
 
-		// TODO: set fromuser and touser in parameters
 		cassandra.ChatTableInsert(in.From, in.To, in.Message)
-
-		// sendMetadata := metadata.
 
 		msg.Message.From = in.From
 		// msg.Message.To = in.To

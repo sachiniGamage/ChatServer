@@ -14,6 +14,12 @@ type MessageManager struct {
 	Session *gocql.Session
 }
 
+type ChatRetrieveStruct struct {
+	From    string
+	To      string
+	Message string
+}
+
 var cluster *gocql.ClusterConfig
 var session *gocql.Session
 var Scanner gocql.Scanner
@@ -118,6 +124,65 @@ func ChatTableInsert(fromUser string, toUser string, sendmsg string) []string {
 		// return
 	}
 
+	return msgArray
+}
+
+func ChatRetrieve(user string) []ChatRetrieveStruct {
+	Tables()
+
+	var (
+		msg      string
+		fromuser string
+		touser   string
+		msg2     string
+		msgArray []ChatRetrieveStruct
+		count    int
+	)
+
+	iter := session.Query("Select msg,fromuser,touser from chatdb where fromuser = ? ALLOW FILTERING;", user).Iter()
+
+	iter2 := session.Query("Select msg,fromuser,touser from chatdb where  touser = ?  ALLOW FILTERING;", user).Iter()
+
+	scanner := iter.Scanner()
+	scanner2 := iter2.Scanner()
+
+	for scanner.Next() {
+		err := scanner.Scan(&msg, &fromuser, &touser)
+		if err != nil {
+			log.Println("iter ")
+		}
+		msgArray = append(msgArray, ChatRetrieveStruct{From: fromuser, To: touser, Message: msg})
+
+		count++
+		if count == 50 {
+			break
+		}
+	}
+	// iter.Scan(&msg)
+	// iter2.Scan(&msg2)
+	count = 0
+	for scanner2.Next() {
+		err := scanner2.Scan(&msg2, &fromuser, &touser)
+		if err != nil {
+			log.Println("iter ")
+		}
+		msgArray = append(msgArray, ChatRetrieveStruct{From: fromuser, To: touser, Message: msg2})
+		count++
+		if count == 50 {
+			break
+		}
+		log.Println(msgArray)
+		// if iter2 != nil {
+		// 	log.Println("iter 2 : " + msg2)
+		// 	return msg2
+		// }
+
+		// var recMsg ChatRetrieveStruct
+		// recMsg = ChatRetrieveStruct{
+		// 	from: msg,
+		// 	to:   msg2,
+		// }
+	}
 	return msgArray
 }
 
