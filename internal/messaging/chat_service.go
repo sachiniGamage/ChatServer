@@ -65,9 +65,10 @@ func chatRecieve(sendStream stub.ChatService_ChatServer, user string) {
 	userRelatedMsgs := cassandra.ChatRetrieve(user)
 
 	for _, s := range userRelatedMsgs {
-		if s.To != user {
-			continue
-		}
+		// if s.To != user {
+		// 	continue
+		// }
+
 		msg := stub.ChatMessageFromServer{
 			Message: &stub.ChatMessage{
 				Message: s.Message,
@@ -76,10 +77,11 @@ func chatRecieve(sendStream stub.ChatService_ChatServer, user string) {
 			},
 		}
 		msg.Message.Message = s.Message
-		log.Println("ChatReceived msg: " + msg.Message.Message + "from :" + s.From + " is forwarded to the the user: " + user)
+		log.Println("ChatReceived msg: " + msg.Message.Message + " from :" + s.From + " is forwarded to the the user: " + user)
 		if sendErr := sendStream.Send(&msg); sendErr != nil {
 			fmt.Println(sendErr)
 		}
+
 	}
 
 	for i := range c {

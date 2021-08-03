@@ -39,7 +39,7 @@ func Tables() {
 		return
 	}
 	err = session.Query("CREATE TABLE register( registerID int, password text, userEmail text, userName text, PRIMARY KEY(userEmail));").Exec()
-	err = session.Query("CREATE TABLE chatdb( registerID int, chatID uuid,msgID uuid, fromUser text, toUser text ,msg text, username text,time timestamp, PRIMARY KEY((fromUser,toUser),time)) WITH CLUSTERING ORDER BY(time DESC);").Exec()
+	err = session.Query("CREATE TABLE chatdb( registerID int, chatID uuid,msgID uuid, fromUser text, toUser text ,msg text, username text,time timestamp, PRIMARY KEY((fromUser,toUser),time)) WITH CLUSTERING ORDER BY(time ASC);").Exec()
 	err = session.Query("CREATE TABLE friends(emailF1 text,myemail text, friendName text , PRIMARY KEY(emailF1,myemail));").Exec()
 	if err != nil {
 		log.Println(err)
@@ -123,6 +123,8 @@ func ChatTableInsert(fromUser string, toUser string, sendmsg string) []string {
 		log.Println(err)
 		// return
 	}
+
+	//merge sort
 
 	return msgArray
 }
