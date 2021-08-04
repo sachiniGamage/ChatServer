@@ -18,6 +18,7 @@ type ChatRetrieveStruct struct {
 	From    string
 	To      string
 	Message string
+	time    int64
 }
 
 var cluster *gocql.ClusterConfig
@@ -76,7 +77,8 @@ func ChatTableInsert(fromUser string, toUser string, sendmsg string) []string {
 		msg      string
 		msg2     string
 		msgArray []string
-		count    int
+		// msgArray2 []string
+		count int
 	)
 	err := session.Query("INSERT INTO chatdb(fromUser,toUser,time,chatid,msg,msgid,registerid,username) VALUES(?,?,toUnixTimestamp(now()), now(),?,now(), 1, 'a');", fromUser, toUser, sendmsg).Exec()
 	// err := session.Query("INSERT INTO chatdb(registerid,chatid,msgid,fromUser,toUser,msg,username,time) VALUES(1,1,now(),?,?,?,'a',toUnixTimestamp(now()));", fromUser, toUser, sendmsg).Exec()
@@ -124,8 +126,6 @@ func ChatTableInsert(fromUser string, toUser string, sendmsg string) []string {
 		// return
 	}
 
-	//merge sort
-
 	return msgArray
 }
 
@@ -133,27 +133,34 @@ func ChatRetrieve(user string) []ChatRetrieveStruct {
 	Tables()
 
 	var (
-		msg      string
-		fromuser string
-		touser   string
-		msg2     string
-		msgArray []ChatRetrieveStruct
-		count    int
+		msg       string
+		fromuser  string
+		touser    string
+		time      int64
+		msg2      string
+		msgArray1 []ChatRetrieveStruct
+		msgArray2 []ChatRetrieveStruct
+		count     int
 	)
 
-	iter := session.Query("Select msg,fromuser,touser from chatdb where fromuser = ? ALLOW FILTERING;", user).Iter()
+	iter := session.Query("Select msg,fromuser,touser,time from chatdb where fromuser = ? ALLOW FILTERING;", user).Iter()
 
-	iter2 := session.Query("Select msg,fromuser,touser from chatdb where  touser = ?  ALLOW FILTERING;", user).Iter()
+	iter2 := session.Query("Select msg,fromuser,touser,time from chatdb where  touser = ?  ALLOW FILTERING;", user).Iter()
 
 	scanner := iter.Scanner()
 	scanner2 := iter2.Scanner()
 
 	for scanner.Next() {
-		err := scanner.Scan(&msg, &fromuser, &touser)
+		err := scanner.Scan(&msg, &fromuser, &touser, &time)
 		if err != nil {
 			log.Println("iter ")
+
 		}
-		msgArray = append(msgArray, ChatRetrieveStruct{From: fromuser, To: touser, Message: msg})
+		log.Println("timeee")
+		log.Println(&time)
+		msgArray1 = append(msgArray1, ChatRetrieveStruct{From: fromuser, To: touser, Message: msg, time: time})
+		log.Println("msgArray1:")
+		log.Println(msgArray1)
 
 		count++
 		if count == 50 {
@@ -164,16 +171,19 @@ func ChatRetrieve(user string) []ChatRetrieveStruct {
 	// iter2.Scan(&msg2)
 	count = 0
 	for scanner2.Next() {
-		err := scanner2.Scan(&msg2, &fromuser, &touser)
+		err := scanner2.Scan(&msg2, &fromuser, &touser, &time)
 		if err != nil {
 			log.Println("iter ")
 		}
-		msgArray = append(msgArray, ChatRetrieveStruct{From: fromuser, To: touser, Message: msg2})
+		msgArray2 = append(msgArray2, ChatRetrieveStruct{From: fromuser, To: touser, Message: msg2, time: time})
+		log.Println("msgArray2:  ")
+
+		log.Println(msgArray2)
+
 		count++
 		if count == 50 {
 			break
 		}
-		log.Println(msgArray)
 		// if iter2 != nil {
 		// 	log.Println("iter 2 : " + msg2)
 		// 	return msg2
@@ -185,7 +195,45 @@ func ChatRetrieve(user string) []ChatRetrieveStruct {
 		// 	to:   msg2,
 		// }
 	}
-	return msgArray
+
+	//merge sort
+
+	var (
+		ArrLen1 int
+		ArrLen2 int
+		i       int
+		j       int
+	)
+
+	ArrLen1 = len(msgArray1)
+	ArrLen2 = len(msgArray2)
+	i = 0
+	j = 0
+
+	var newArr []ChatRetrieveStruct
+
+	for i < ArrLen1 && j < ArrLen2 {
+		if msgArray1[i].time >= msgArray2[j].time {
+			newArr = append(newArr, msgArray2[j])
+			j += 1
+
+		} else {
+			newArr = append(newArr, msgArray1[i])
+			i += 1
+		}
+		log.Println("newArr ")
+		log.Println(newArr)
+	}
+	for i < ArrLen1 {
+		newArr = append(newArr, msgArray1[i])
+		i += 1
+	}
+
+	for j < ArrLen2 {
+		newArr = append(newArr, msgArray2[j])
+		j += 1
+	}
+	return newArr
 }
 
 func GetMsg() {
