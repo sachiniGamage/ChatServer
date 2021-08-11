@@ -174,7 +174,7 @@ func (s *AuthenticationService) Register(ctx context.Context, in *stub.RegisterU
 	reg := stub.RegisterUser{}
 	reg.Email = "received email : " + in.Email
 
-	cassandra.TableRegisterInsertions(in.Password, in.Email, in.Username)
+	cassandra.TableRegisterInsertions(in.Password, in.Email, in.PublicKey, in.Username)
 
 	return new(emptypb.Empty), nil
 
@@ -221,7 +221,8 @@ func (s *EditService) AddFriend(ctx context.Context, in *stub.AddFriendReq) (*st
 
 	updt := stub.AddFriendReq{
 		Detail: &stub.FriendList{
-			Username: in.Detail.Username,
+			Username:  in.Detail.Username,
+			PublicKey: in.Detail.PublicKey,
 		},
 	}
 
@@ -233,11 +234,13 @@ func (s *EditService) AddFriend(ctx context.Context, in *stub.AddFriendReq) (*st
 
 	if getname != "" {
 		regUser := &stub.RegisterUser{
-			Username: getname,
+			Username:  getname,
+			PublicKey: in.Detail.PublicKey,
 		}
 		updt.Detail.Username = regUser
 		log.Println("friend added - chatservice.go")
 		log.Println(updt.Detail.Username)
+		log.Println(updt.Detail.PublicKey)
 		return &updt, nil
 	} else {
 		return nil, nil

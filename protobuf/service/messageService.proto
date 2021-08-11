@@ -4,6 +4,10 @@ package service;
 
 import "google/protobuf/empty.proto";
 
+option java_multiple_files = true;
+option java_package = "com.example.chatclient.stub";
+option java_outer_classname = "MessageServiceProto";
+
 option go_package = "github.com/SachiniGamage/ChatServer/stub";
 
 message ChatMessage {
@@ -30,6 +34,7 @@ message RegisterUser{
     string email=1;
     string password=2;
     string username=3;
+    string publicKey = 4;
 }
 
 message LoginUser{
@@ -40,6 +45,7 @@ message LoginUser{
 
 message Token{
     string token=1;
+
 }
 
 message Edit{
@@ -50,6 +56,7 @@ message FriendList{
     string FriendsEmail = 1;
     RegisterUser email =2;
     RegisterUser username = 3;
+    string publicKey = 4;
 }
 
 message AddFriendReq{
@@ -60,6 +67,7 @@ message AddFriendReq{
 message ViewFriends{
     string myemail = 1;
     repeated RegisterUser friendsInList = 2;
+    repeated RegisterUser friendsNameInList =3;
 }
 
 service ChatService {
