@@ -195,9 +195,11 @@ func (s *AuthenticationService) Login(ctx context.Context, in *stub.LoginUser) (
 	// }
 	// conn, err := grpc.Dial(serverAddr, grpc.WithTransportCredentials(credentials.NewClientTLSFromCert(nil, "")), grpc.WithPerRPCCredentials(jwtCreds))
 
-	if cassandra.Login(in.Email, in.Password) == true {
+	pbkey := cassandra.Login(in.Email, in.Password)
+	if pbkey != "" {
 		return &stub.Token{
-			Token: "abc",
+			Token:     "abc",
+			PublicKey: pbkey,
 		}, nil
 	} else {
 		return &stub.Token{
@@ -230,14 +232,16 @@ func (s *EditService) AddFriend(ctx context.Context, in *stub.AddFriendReq) (*st
 
 	// var getname string
 
-	getname := cassandra.AddFriend(in.Detail.FriendsEmail, in.Myemail)
+	getname := cassandra.AddFriend(in.Detail.FriendsEmail, in.Myemail, in.AddedEmailf1, in.Addbymyemail)
 
-	if getname != "" {
+	var emtyArr [2]string
+	if getname != emtyArr {
 		regUser := &stub.RegisterUser{
-			Username:  getname,
-			PublicKey: in.Detail.PublicKey,
+			Username:  getname[0],
+			PublicKey: getname[1],
 		}
 		updt.Detail.Username = regUser
+		updt.Detail.PublicKey = regUser.PublicKey
 		log.Println("friend added - chatservice.go")
 		log.Println(updt.Detail.Username)
 		log.Println(updt.Detail.PublicKey)

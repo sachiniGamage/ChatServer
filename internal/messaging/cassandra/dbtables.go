@@ -41,7 +41,7 @@ func Tables() {
 	}
 	err = session.Query("CREATE TABLE register( registerID int, password text, userEmail text,publickey text, userName text, PRIMARY KEY(userEmail,publickey));").Exec()
 	err = session.Query("CREATE TABLE chatdb( registerID int, chatID uuid,msgID uuid, fromUser text, toUser text ,msg text, username text,time timestamp, PRIMARY KEY((fromUser,toUser),time)) WITH CLUSTERING ORDER BY(time ASC);").Exec()
-	err = session.Query("CREATE TABLE friends(emailF1 text,myemail text, friendName text , PRIMARY KEY(emailF1,myemail));").Exec()
+	err = session.Query("CREATE TABLE friends(emailF1 text,myemail text, friendName text , addedEmailf1 text, addbymyemail text PRIMARY KEY(emailF1,myemail));").Exec()
 
 	if err != nil {
 		log.Println(err)
@@ -250,8 +250,9 @@ func GetMsg() {
 }
 
 //login
-func Login(email string, passwrd string) bool {
+func Login(email string, passwrd string) string {
 	log.Println("login3")
+	var publickey string
 	Tables()
 	if session == nil {
 		log.Println("session not available")
@@ -261,25 +262,34 @@ func Login(email string, passwrd string) bool {
 	iter := session.Query("SELECT useremail,password FROM register WHERE useremail = ? AND password = ? ALLOW FILTERING;", email, passwrd).Iter()
 	// err = session.Query("SELECT * FROM register where password = '?' ;", password).Exec()
 	log.Println("login4")
+	iter2 := session.Query("SELECT publickey FROM register where useremail = ? ALLOW FILTERING;", email).Iter()
 
 	if (iter.NumRows()) == 0 {
 		log.Println("user not found")
-		return false
+		return ""
 	} else if (iter.NumRows()) == 1 {
 		log.Println("user found")
-		return true
+		return "true"
 
 	}
 
-	if iter != nil {
+	if (iter2.NumRows()) == 0 {
+		log.Println("No such friend")
+		return ""
+	} else if (iter2.NumRows()) == 1 {
+		iter2.Scan(&publickey)
+	}
+
+	if iter != nil && iter2 != nil {
 
 		log.Println(iter)
-		return true
+		return "true"
 	}
 	time_output := session.Query("SELECT * FROM register;").Iter()
 	fmt.Println("output: ", time_output)
 
-	return true
+	log.Println("publickey " + publickey)
+	return publickey
 }
 
 func UpdateName(name string) {
@@ -301,11 +311,13 @@ func UpdateName(name string) {
 
 }
 
-func AddFriend(emailf string, myemail string) string {
+func AddFriend(emailf string, myemail string, addedEmailf1 string, addbymyemail string) [2]string {
 	Tables()
 	var (
 		username  string
 		publickey string
+		newArray  [2]string
+		emtyArr   [2]string
 	)
 	if session == nil {
 		log.Println("session not available")
@@ -313,41 +325,53 @@ func AddFriend(emailf string, myemail string) string {
 	log.Println("session available")
 
 	iter := session.Query("SELECT username FROM register where useremail = ? ALLOW FILTERING;", emailf).Iter()
-	iter2 := session.Query("SELECT publicKey FROM register where useremail = ? ALLOW FILTERING;", emailf).Iter()
+	iter2 := session.Query("SELECT publickey FROM register where useremail = ? ALLOW FILTERING;", emailf).Iter()
 	if (iter.NumRows()) == 0 {
 		log.Println("No such friend")
-		return ""
+		return emtyArr
 	} else if (iter.NumRows()) == 1 {
 
 		iter.Scan(&username)
-		err := session.Query("INSERT INTO friends(emailF1,myemail,friendName) VALUES(?,?,?);", emailf, myemail, username).Exec()
+		newArray[0] = username
+		err := session.Query("INSERT INTO friends(emailF1,myemail,addedEmailf1,addbymyemail,friendName) VALUES(?,?,?,?,?);", emailf, myemail, addedEmailf1, addbymyemail, username).Exec()
 		log.Println("Friend added")
 		iter.Scan()
 		if err != nil {
 			log.Println(err)
-			return username
+
+			return newArray
 		}
-		return username
+		// return newArray
 	}
+
 	if (iter2.NumRows()) == 0 {
 		log.Println("No such friend")
-		return ""
+		return emtyArr
+	} else if (iter.NumRows()) == 1 {
+		iter2.Scan(&publickey)
+		newArray[1] = publickey
+
+		iter2.Scan()
+
+		// return newArray
 	}
 
-	if iter != nil {
+	if iter != nil && iter2 != nil {
 
 		log.Println(iter)
-		return username
+		return newArray
 	}
 
 	if iter2 != nil {
 
 		log.Println(iter)
-		return publickey
+		return newArray
 	}
 	time_output := session.Query("SELECT * FROM register;").Iter()
 	fmt.Println("output: ", time_output)
-	return username
+
+	fmt.Println("newArray: ", newArray)
+	return newArray
 }
 
 func ViewFriendList(email string) [][2]string {
