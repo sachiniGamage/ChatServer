@@ -196,6 +196,7 @@ func (s *AuthenticationService) Login(ctx context.Context, in *stub.LoginUser) (
 	// conn, err := grpc.Dial(serverAddr, grpc.WithTransportCredentials(credentials.NewClientTLSFromCert(nil, "")), grpc.WithPerRPCCredentials(jwtCreds))
 
 	pbkey := cassandra.Login(in.Email, in.Password)
+	fmt.Println("pbkey:" + pbkey)
 	if pbkey != "" {
 		return &stub.Token{
 			Token:     "abc",

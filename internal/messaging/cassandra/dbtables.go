@@ -269,26 +269,16 @@ func Login(email string, passwrd string) string {
 		return ""
 	} else if (iter.NumRows()) == 1 {
 		log.Println("user found")
-		return "true"
+		if (iter2.NumRows()) == 0 {
+			log.Println("No such friend")
+			return ""
+		} else if (iter2.NumRows()) == 1 {
+			iter2.Scan(&publickey)
+			log.Println(publickey)
+		}
+		return publickey
 
 	}
-
-	if (iter2.NumRows()) == 0 {
-		log.Println("No such friend")
-		return ""
-	} else if (iter2.NumRows()) == 1 {
-		iter2.Scan(&publickey)
-	}
-
-	if iter != nil && iter2 != nil {
-
-		log.Println(iter)
-		return "true"
-	}
-	time_output := session.Query("SELECT * FROM register;").Iter()
-	fmt.Println("output: ", time_output)
-
-	log.Println("publickey " + publickey)
 	return publickey
 }
 
