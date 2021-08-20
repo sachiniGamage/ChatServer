@@ -35,6 +35,7 @@ message RegisterUser{
     string password=2;
     string username=3;
     string publicKey = 4;
+    string encryptedKey = 5;
 }
 
 message LoginUser{
@@ -57,6 +58,7 @@ message FriendList{
     RegisterUser email =2;
     RegisterUser username = 3;
     string publicKey = 4;
+    
 }
 
 message AddFriendReq{
@@ -69,7 +71,7 @@ message AddFriendReq{
 message ViewFriends{
     string myemail = 1;
     repeated RegisterUser friendsInList = 2;
-    repeated RegisterUser friendsNameInList =3;
+    
 }
 
 service ChatService {

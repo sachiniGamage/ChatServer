@@ -223,11 +223,14 @@ func (s *EditService) AddFriend(ctx context.Context, in *stub.AddFriendReq) (*st
 	fmt.Println("Add friend Function Triggered.")
 
 	updt := stub.AddFriendReq{
+		Addbymyemail: in.Addbymyemail,
+
 		Detail: &stub.FriendList{
 			Username:  in.Detail.Username,
 			PublicKey: in.Detail.PublicKey,
 		},
 	}
+	fmt.Println("Addbymyemail" + in.Addbymyemail)
 
 	// cassandra.AddFriend(in.FriendsEmail)
 
@@ -235,17 +238,22 @@ func (s *EditService) AddFriend(ctx context.Context, in *stub.AddFriendReq) (*st
 
 	getname := cassandra.AddFriend(in.Detail.FriendsEmail, in.Myemail, in.AddedEmailf1, in.Addbymyemail)
 
-	var emtyArr [2]string
+	var emtyArr [3]string
 	if getname != emtyArr {
 		regUser := &stub.RegisterUser{
 			Username:  getname[0],
 			PublicKey: getname[1],
 		}
+		frndRq := &stub.AddFriendReq{
+			Addbymyemail: getname[2],
+		}
 		updt.Detail.Username = regUser
 		updt.Detail.PublicKey = regUser.PublicKey
+		updt.Addbymyemail = frndRq.Addbymyemail
 		log.Println("friend added - chatservice.go")
 		log.Println(updt.Detail.Username)
 		log.Println(updt.Detail.PublicKey)
+		log.Println(updt.Addbymyemail)
 		return &updt, nil
 	} else {
 		return nil, nil
@@ -267,6 +275,8 @@ func (s *EditService) GetFriends(ctx context.Context, in *stub.ViewFriends) (*st
 		regUser := &stub.RegisterUser{}
 		regUser.Email = friendEntry[0]
 		regUser.Username = friendEntry[1]
+		regUser.EncryptedKey = friendEntry[2]
+
 		regUserArray = append(regUserArray, regUser)
 	}
 	finalFriendList := &stub.ViewFriends{
