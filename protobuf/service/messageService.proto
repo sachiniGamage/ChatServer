@@ -71,7 +71,6 @@ message AddFriendReq{
 message ViewFriends{
     string myemail = 1;
     repeated RegisterUser friendsInList = 2;
-    
 }
 
 service ChatService {

@@ -304,10 +304,11 @@ func UpdateName(name string) {
 func AddFriend(emailf string, myemail string, addedEmailf1 string, addbymyemail string) [3]string {
 	Tables()
 	var (
-		username  string
-		publickey string
-		newArray  [3]string
-		emtyArr   [3]string
+		username     string
+		publickey    string
+		addedmyemail string
+		newArray     [3]string
+		emtyArr      [3]string
 	)
 	if session == nil {
 		log.Println("session not available")
@@ -316,8 +317,8 @@ func AddFriend(emailf string, myemail string, addedEmailf1 string, addbymyemail 
 
 	iter := session.Query("SELECT username FROM register where useremail = ? ALLOW FILTERING;", emailf).Iter()
 	iter2 := session.Query("SELECT publickey FROM register where useremail = ? ALLOW FILTERING;", emailf).Iter()
-	// iter3 := session.Query("SELECT addbymyemail FROM friends where emailF1 = ? myemail=? ALLOW FILTERING;", emailf, myemail).Iter()
-	iter3 := session.Query("SELECT addbymyemail FROM friends where emailF1 = ? ALLOW FILTERING;", emailf).Iter()
+	iter3 := session.Query("SELECT addbymyemail FROM friends where emailF1 = ? AND myemail=? ALLOW FILTERING;", emailf, myemail).Iter()
+	// iter3 := session.Query("SELECT addbymyemail FROM friends where emailF1 = ? ALLOW FILTERING;", emailf).Iter()
 	if (iter.NumRows()) == 0 {
 		log.Println("No such friend")
 		return emtyArr
@@ -350,23 +351,24 @@ func AddFriend(emailf string, myemail string, addedEmailf1 string, addbymyemail 
 
 	if (iter3.NumRows()) == 0 {
 		log.Println("No such addbymyemail")
-		return emtyArr
-	} else if (iter3.NumRows()) >= 1 {
-		iter3.Scan(&addbymyemail)
-		newArray[2] = addbymyemail
+
+	} else if (iter3.NumRows()) == 1 {
+		iter3.Scan(&addedmyemail)
+		newArray[2] = addedmyemail
 
 		iter3.Scan()
 
-		// return newArray
+		return newArray
 	}
 
 	if iter != nil && iter2 != nil && iter3 != nil {
 
+		fmt.Println("newArray: ", newArray)
 		log.Println(iter)
 		return newArray
 	}
 
-	// if iter2 != nil && iter3 != nil {
+	// if iter3 != nil {
 
 	// 	log.Println(iter)
 	// 	return newArray
@@ -406,21 +408,54 @@ func ViewFriendList(email string) [][4]string {
 	return friends
 }
 
-func AddFriendUpdate(name string) {
+func AddFriendUpdate(addedEmailf1 string, addbymyemail string, myemail string, emailf string) string {
 	Tables()
 
 	if session == nil {
 		log.Println("session not available")
 	}
 	log.Println("session available")
-	err := session.Query("UPDATE register SET username = ? where useremail = 's' ;", name).Exec()
-	log.Println("Name updated")
+
+	var (
+		newArray string
+		emtyArr  string
+	)
+
+	err := session.Query("UPDATE friends SET addedemailf1 = ? , addbymyemail = ? where myemail = ? AND emailf1=?;", addedEmailf1, addbymyemail, myemail, emailf).Exec()
+	iter1 := session.Query("SELECT addbymyemail FROM friends where emailF1 = ? AND myemail = ? ALLOW FILTERING;", emailf, myemail).Iter()
+
+	if (iter1.NumRows()) == 0 {
+		log.Println("No such addbymyemail")
+		return emtyArr
+	} else if (iter1.NumRows()) == 1 {
+		iter1.Scan(&addbymyemail)
+		newArray = addbymyemail
+
+		iter1.Scan()
+
+		// return newArray
+	}
+
 	if err != nil {
 		log.Println(err)
-		return
+		log.Println("err in add friend update")
+	}
+
+	if iter1 != nil {
+		log.Println(err)
+		log.Println(iter1)
+		log.Println(" Add friend update : ")
+		log.Println(newArray)
+		return newArray
+	}
+
+	log.Println("addedemailf1 and addbymyemail updated")
+	if err != nil {
+		log.Println(err)
+
 	}
 
 	time_output := session.Query("SELECT * FROM register;").Iter()
 	fmt.Println("output: ", time_output)
-
+	return newArray
 }
