@@ -380,24 +380,24 @@ func AddFriend(emailf string, myemail string, addedEmailf1 string, addbymyemail 
 	return newArray
 }
 
-func ViewFriendList(email string) [][4]string {
+func ViewFriendList(email string) [][3]string {
 	Tables()
 
-	var friends [][4]string
+	var friends [][3]string
 
 	if session == nil {
 		log.Println("session not available")
 	}
 	log.Println("session available")
 
-	Scanner := session.Query("SELECT emailF1,friendname,addedemailf1,addbymyemail FROM friends where myemail= ? ALLOW FILTERING;", email).Iter().Scanner()
+	Scanner := session.Query("SELECT emailF1,friendname,addbymyemail FROM friends where myemail= ? ALLOW FILTERING;", email).Iter().Scanner()
 
 	for Scanner.Next() {
 
 		var (
-			friendEntry [4]string
+			friendEntry [3]string
 		)
-		Scanner.Scan(&friendEntry[0], &friendEntry[1], &friendEntry[2], &friendEntry[3])
+		Scanner.Scan(&friendEntry[0], &friendEntry[1], &friendEntry[2])
 
 		friends = append(friends, friendEntry)
 
