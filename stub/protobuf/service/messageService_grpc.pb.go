@@ -20,6 +20,7 @@ const _ = grpc.SupportPackageIsVersion7
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type ChatServiceClient interface {
 	Chat(ctx context.Context, opts ...grpc.CallOption) (ChatService_ChatClient, error)
+	GroupChat(ctx context.Context, opts ...grpc.CallOption) (ChatService_GroupChatClient, error)
 }
 
 type chatServiceClient struct {
@@ -61,11 +62,43 @@ func (x *chatServiceChatClient) Recv() (*ChatMessageFromServer, error) {
 	return m, nil
 }
 
+func (c *chatServiceClient) GroupChat(ctx context.Context, opts ...grpc.CallOption) (ChatService_GroupChatClient, error) {
+	stream, err := c.cc.NewStream(ctx, &ChatService_ServiceDesc.Streams[1], "/service.ChatService/GroupChat", opts...)
+	if err != nil {
+		return nil, err
+	}
+	x := &chatServiceGroupChatClient{stream}
+	return x, nil
+}
+
+type ChatService_GroupChatClient interface {
+	Send(*GroupMessage) error
+	Recv() (*GroupMessageFromServer, error)
+	grpc.ClientStream
+}
+
+type chatServiceGroupChatClient struct {
+	grpc.ClientStream
+}
+
+func (x *chatServiceGroupChatClient) Send(m *GroupMessage) error {
+	return x.ClientStream.SendMsg(m)
+}
+
+func (x *chatServiceGroupChatClient) Recv() (*GroupMessageFromServer, error) {
+	m := new(GroupMessageFromServer)
+	if err := x.ClientStream.RecvMsg(m); err != nil {
+		return nil, err
+	}
+	return m, nil
+}
+
 // ChatServiceServer is the server API for ChatService service.
 // All implementations must embed UnimplementedChatServiceServer
 // for forward compatibility
 type ChatServiceServer interface {
 	Chat(ChatService_ChatServer) error
+	GroupChat(ChatService_GroupChatServer) error
 	mustEmbedUnimplementedChatServiceServer()
 }
 
@@ -75,6 +108,9 @@ type UnimplementedChatServiceServer struct {
 
 func (UnimplementedChatServiceServer) Chat(ChatService_ChatServer) error {
 	return status.Errorf(codes.Unimplemented, "method Chat not implemented")
+}
+func (UnimplementedChatServiceServer) GroupChat(ChatService_GroupChatServer) error {
+	return status.Errorf(codes.Unimplemented, "method GroupChat not implemented")
 }
 func (UnimplementedChatServiceServer) mustEmbedUnimplementedChatServiceServer() {}
 
@@ -115,6 +151,32 @@ func (x *chatServiceChatServer) Recv() (*ChatMessage, error) {
 	return m, nil
 }
 
+func _ChatService_GroupChat_Handler(srv interface{}, stream grpc.ServerStream) error {
+	return srv.(ChatServiceServer).GroupChat(&chatServiceGroupChatServer{stream})
+}
+
+type ChatService_GroupChatServer interface {
+	Send(*GroupMessageFromServer) error
+	Recv() (*GroupMessage, error)
+	grpc.ServerStream
+}
+
+type chatServiceGroupChatServer struct {
+	grpc.ServerStream
+}
+
+func (x *chatServiceGroupChatServer) Send(m *GroupMessageFromServer) error {
+	return x.ServerStream.SendMsg(m)
+}
+
+func (x *chatServiceGroupChatServer) Recv() (*GroupMessage, error) {
+	m := new(GroupMessage)
+	if err := x.ServerStream.RecvMsg(m); err != nil {
+		return nil, err
+	}
+	return m, nil
+}
+
 // ChatService_ServiceDesc is the grpc.ServiceDesc for ChatService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -126,6 +188,12 @@ var ChatService_ServiceDesc = grpc.ServiceDesc{
 		{
 			StreamName:    "Chat",
 			Handler:       _ChatService_Chat_Handler,
+			ServerStreams: true,
+			ClientStreams: true,
+		},
+		{
+			StreamName:    "GroupChat",
+			Handler:       _ChatService_GroupChat_Handler,
 			ServerStreams: true,
 			ClientStreams: true,
 		},
@@ -261,6 +329,8 @@ var AuthenticateUser_ServiceDesc = grpc.ServiceDesc{
 type UpdateUserClient interface {
 	UpdateName(ctx context.Context, in *Edit, opts ...grpc.CallOption) (*RegisterUser, error)
 	AddFriend(ctx context.Context, in *AddFriendReq, opts ...grpc.CallOption) (*AddFriendReq, error)
+	AddFriendsToGroup(ctx context.Context, in *AddGrpFriendReq, opts ...grpc.CallOption) (*AddGrpFriendReq, error)
+	CreateGroup(ctx context.Context, in *MakeGroup, opts ...grpc.CallOption) (*MakeGroup, error)
 	GetFriends(ctx context.Context, in *ViewFriends, opts ...grpc.CallOption) (*ViewFriends, error)
 }
 
@@ -290,6 +360,24 @@ func (c *updateUserClient) AddFriend(ctx context.Context, in *AddFriendReq, opts
 	return out, nil
 }
 
+func (c *updateUserClient) AddFriendsToGroup(ctx context.Context, in *AddGrpFriendReq, opts ...grpc.CallOption) (*AddGrpFriendReq, error) {
+	out := new(AddGrpFriendReq)
+	err := c.cc.Invoke(ctx, "/service.UpdateUser/AddFriendsToGroup", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *updateUserClient) CreateGroup(ctx context.Context, in *MakeGroup, opts ...grpc.CallOption) (*MakeGroup, error) {
+	out := new(MakeGroup)
+	err := c.cc.Invoke(ctx, "/service.UpdateUser/CreateGroup", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 func (c *updateUserClient) GetFriends(ctx context.Context, in *ViewFriends, opts ...grpc.CallOption) (*ViewFriends, error) {
 	out := new(ViewFriends)
 	err := c.cc.Invoke(ctx, "/service.UpdateUser/GetFriends", in, out, opts...)
@@ -305,6 +393,8 @@ func (c *updateUserClient) GetFriends(ctx context.Context, in *ViewFriends, opts
 type UpdateUserServer interface {
 	UpdateName(context.Context, *Edit) (*RegisterUser, error)
 	AddFriend(context.Context, *AddFriendReq) (*AddFriendReq, error)
+	AddFriendsToGroup(context.Context, *AddGrpFriendReq) (*AddGrpFriendReq, error)
+	CreateGroup(context.Context, *MakeGroup) (*MakeGroup, error)
 	GetFriends(context.Context, *ViewFriends) (*ViewFriends, error)
 	mustEmbedUnimplementedUpdateUserServer()
 }
@@ -318,6 +408,12 @@ func (UnimplementedUpdateUserServer) UpdateName(context.Context, *Edit) (*Regist
 }
 func (UnimplementedUpdateUserServer) AddFriend(context.Context, *AddFriendReq) (*AddFriendReq, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method AddFriend not implemented")
+}
+func (UnimplementedUpdateUserServer) AddFriendsToGroup(context.Context, *AddGrpFriendReq) (*AddGrpFriendReq, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method AddFriendsToGroup not implemented")
+}
+func (UnimplementedUpdateUserServer) CreateGroup(context.Context, *MakeGroup) (*MakeGroup, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method CreateGroup not implemented")
 }
 func (UnimplementedUpdateUserServer) GetFriends(context.Context, *ViewFriends) (*ViewFriends, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetFriends not implemented")
@@ -371,6 +467,42 @@ func _UpdateUser_AddFriend_Handler(srv interface{}, ctx context.Context, dec fun
 	return interceptor(ctx, in, info, handler)
 }
 
+func _UpdateUser_AddFriendsToGroup_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(AddGrpFriendReq)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(UpdateUserServer).AddFriendsToGroup(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/service.UpdateUser/AddFriendsToGroup",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(UpdateUserServer).AddFriendsToGroup(ctx, req.(*AddGrpFriendReq))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _UpdateUser_CreateGroup_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(MakeGroup)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(UpdateUserServer).CreateGroup(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/service.UpdateUser/CreateGroup",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(UpdateUserServer).CreateGroup(ctx, req.(*MakeGroup))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 func _UpdateUser_GetFriends_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(ViewFriends)
 	if err := dec(in); err != nil {
@@ -403,6 +535,14 @@ var UpdateUser_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "AddFriend",
 			Handler:    _UpdateUser_AddFriend_Handler,
+		},
+		{
+			MethodName: "AddFriendsToGroup",
+			Handler:    _UpdateUser_AddFriendsToGroup_Handler,
+		},
+		{
+			MethodName: "CreateGroup",
+			Handler:    _UpdateUser_CreateGroup_Handler,
 		},
 		{
 			MethodName: "GetFriends",

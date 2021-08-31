@@ -45,6 +45,12 @@ type RecieveMsg struct {
 	to      string
 }
 
+type RecieveGrpMsg struct {
+	friendEmail string
+	msg         string
+	groupName   string
+}
+
 var values []string
 var doOnce map[string]sync.Once
 var channelMap map[string]chan RecieveMsg
@@ -102,6 +108,38 @@ func chatRecieve(sendStream stub.ChatService_ChatServer, user string) {
 	}
 	// })
 
+}
+
+func (s *MessagingService) GroupChat(stream stub.ChatService_GroupChatServer) error {
+	fmt.Println("GroupChat Function Triggered.")
+	for {
+
+		in, err := stream.Recv()
+		if err == io.EOF {
+			fmt.Println("stream has ended")
+			return nil
+		}
+		if err != nil {
+			fmt.Println(" Error received from channel from user stream: ")
+			return err
+		}
+		fmt.Println("Group Chat message is recieved: " + in.Msg + " From: " + in.FriendEmail)
+		// go chatRecieve(stream, in.To)
+
+		msg := stub.GroupMessageFromServer{
+			GroupList: &stub.GroupMessage{
+				GroupDetails: &stub.MakeGroup{},
+			},
+		}
+
+		log.Println("Add message: " + in.Msg + " From: " + in.FriendEmail)
+
+		cassandra.GroupChatTableInsert(in.FriendEmail, in.Msg)
+
+		if sendErr := stream.Send(&msg); sendErr != nil {
+			return sendErr
+		}
+	}
 }
 
 func (s *MessagingService) Chat(stream stub.ChatService_ChatServer) error {
@@ -217,6 +255,34 @@ func (s *EditService) UpdateName(ctx context.Context, in *stub.Edit) (*stub.Regi
 	cassandra.UpdateName(in.Username)
 
 	return &stub.RegisterUser{}, nil
+}
+
+func (s *EditService) CreateGroup(ctx context.Context, in *stub.MakeGroup) (*stub.MakeGroup, error) {
+	fmt.Println("Create Group Function Triggered.")
+	grp := stub.MakeGroup{
+		GroupName:   in.GroupName,
+		AdminEmail:  in.AdminEmail,
+		FriendEmail: in.FriendEmail,
+	}
+	grp.GroupName = "Group Name: " + in.GroupName
+
+	getGroupDetails := cassandra.GroupChatDetailsInsertion(in.AdminEmail, in.FriendEmail, in.GroupName)
+
+	var emptyArr [3]string
+	if getGroupDetails != emptyArr {
+		details := &stub.MakeGroup{
+			GroupName:   getGroupDetails[0],
+			AdminEmail:  getGroupDetails[1],
+			FriendEmail: getGroupDetails[2],
+		}
+		grp.GroupName = details.GroupName
+		grp.AdminEmail = details.AdminEmail
+		grp.FriendEmail = details.FriendEmail
+		return &grp, nil
+	} else {
+		return nil, nil
+	}
+
 }
 
 func (s *EditService) AddFriend(ctx context.Context, in *stub.AddFriendReq) (*stub.AddFriendReq, error) {

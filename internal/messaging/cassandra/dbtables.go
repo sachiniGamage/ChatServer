@@ -42,6 +42,8 @@ func Tables() {
 	err = session.Query("CREATE TABLE register( registerID int, password text, userEmail text,publickey text, userName text, PRIMARY KEY(userEmail,publickey));").Exec()
 	err = session.Query("CREATE TABLE chatdb( registerID int, chatID uuid,msgID uuid, fromUser text, toUser text ,msg text, username text,time timestamp, PRIMARY KEY((fromUser,toUser),time)) WITH CLUSTERING ORDER BY(time ASC);").Exec()
 	err = session.Query("CREATE TABLE friends(emailF1 text,myemail text, friendName text , addedEmailf1 text, addbymyemail text PRIMARY KEY(emailF1,myemail));").Exec()
+	err = session.Query("CREATE TABLE grpchatdb(groupID uuid,friendEmail text,msg text,msgID uuid,time timestamp, PRIMARY KEY((groupID),time)) WITH CLUSTERING ORDER BY(time ASC);").Exec()
+	err = session.Query("CREATE TABLE grpdetaildb(groupID uuid,groupName text,adminEmail text, friendEmail text, PRIMARY KEY(groupID));").Exec()
 
 	if err != nil {
 		log.Println(err)
@@ -71,6 +73,75 @@ func TableRegisterInsertions(password string, email string, publickey string, us
 
 //insert to chat db
 //([]string)
+
+func GroupChatDetailsInsertion(AdminEmail string, groupName string, friendEmail string) [3]string {
+	Tables()
+	var (
+		grpName    string
+		adminEmail string
+		frndEmail  string
+		msgArray   [3]string
+		emptyArr   [3]string
+	)
+	err := session.Query("INSERT INTO grpdetaildb(groupID,adminemail,friendEmail,groupname) VALUES(now(),?,?,?);", AdminEmail, friendEmail, groupName).Exec()
+	//Todo: Write a new select query to get grp chats which is i'm already in
+	iter := session.Query("Select groupName,adminEmail,friendemail from grpdetaildb where AdminEmail = ?  ALLOW FILTERING;", AdminEmail).Iter()
+
+	scanner := iter.Scanner()
+
+	for scanner.Next() {
+		err := scanner.Scan(&grpName, &adminEmail, &frndEmail)
+		if err != nil {
+			log.Println("error in iter - groupchatDetails ")
+			return emptyArr
+		}
+		msgArray[0] = groupName
+		msgArray[1] = adminEmail
+		msgArray[2] = friendEmail
+	}
+
+	if err != nil {
+		log.Println(err)
+	}
+	log.Println("grp msgArr")
+	log.Println(msgArray)
+	return msgArray
+
+}
+
+func GroupChatTableInsert(friendEmail string, message string) [3]string {
+	Tables()
+
+	var (
+		frndEmail string
+		msg       string
+		time      int64
+		msgArray  [3]string
+		emptyArr  [3]string
+	)
+
+	err := session.Query("INSERT INTO grpchatdb(groupID,friendEmail,msg,msgID,time) VALUES(now(),?,?,now(),toUnixTimestamp(now()));", friendEmail, message).Exec()
+	iter := session.Query("Select friendEmail,msg,time from grgpchatdb ").Iter()
+
+	scanner := iter.Scanner()
+
+	for scanner.Next() {
+		err := scanner.Scan(&frndEmail, &msg, &time)
+		if err != nil {
+			log.Println("iter ")
+			return emptyArr
+		}
+		msgArray[0] = frndEmail
+		msgArray[1] = msg
+		// msgArray[2] = time
+	}
+	if err != nil {
+		log.Println(err)
+		// return
+	}
+	return msgArray
+}
+
 func ChatTableInsert(fromUser string, toUser string, sendmsg string) []string {
 	Tables()
 
