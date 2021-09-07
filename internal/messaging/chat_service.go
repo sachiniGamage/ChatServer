@@ -19,6 +19,7 @@ import (
 
 	"google.golang.org/grpc/metadata"
 	"google.golang.org/protobuf/types/known/emptypb"
+	"google.golang.org/protobuf/types/known/wrapperspb"
 )
 
 type MessagingService struct {
@@ -331,6 +332,25 @@ func (s *EditService) AddFriend(ctx context.Context, in *stub.AddFriendReq) (*st
 		return nil, nil
 	}
 
+}
+
+func (s *EditService) GetGroup(ctx context.Context, in *wrapperspb.StringValue) (*stub.ViewGroup, error) {
+	fmt.Println("get Groups Function Triggered.")
+
+	// getGrps := stub.ViewGroup{}
+	grpArray := cassandra.ViewGroupList(in.Value)
+	var groupArray []*stub.MakeGroup
+	for _, groupEntry := range grpArray {
+		grp := &stub.MakeGroup{}
+		grp.GroupId = groupEntry[0]
+		grp.GroupName = groupEntry[1]
+
+		groupArray = append(groupArray, grp)
+	}
+	finalGroupList := &stub.ViewGroup{
+		GrpDetails: groupArray,
+	}
+	return finalGroupList, nil
 }
 
 func (s *EditService) GetFriends(ctx context.Context, in *stub.ViewFriends) (*stub.ViewFriends, error) {

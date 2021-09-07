@@ -453,6 +453,38 @@ func AddFriend(emailf string, myemail string, addedEmailf1 string, addbymyemail 
 	return newArray
 }
 
+func ViewGroupList(myEmail string) [][2]string {
+	Tables()
+	if session == nil {
+		log.Println("session not available")
+	}
+	log.Println("session available")
+
+	var groups [][2]string
+
+	Scanner1 := session.Query("select groupid,groupname from grpdetaildb where friendemail = ? ALLOW FILTERING;", myEmail).Iter().Scanner()
+	Scanner2 := session.Query("select groupid,groupname from grpdetaildb where adminemail = ?  ALLOW FILTERING;", myEmail).Iter().Scanner()
+
+	for Scanner1.Next() {
+		var (
+			groupEntry [2]string
+		)
+		Scanner1.Scan(&groupEntry[0], &groupEntry[1])
+
+		groups = append(groups, groupEntry)
+	}
+
+	for Scanner2.Next() {
+		var (
+			groupEntry [2]string
+		)
+		Scanner2.Scan(&groupEntry[0], &groupEntry[1])
+
+		groups = append(groups, groupEntry)
+	}
+	return groups
+}
+
 func ViewFriendList(email string) [][3]string {
 	Tables()
 
