@@ -43,7 +43,7 @@ func Tables() {
 	err = session.Query("CREATE TABLE chatdb( registerID int, chatID uuid,msgID uuid, fromUser text, toUser text ,msg text, username text,time timestamp, PRIMARY KEY((fromUser,toUser),time)) WITH CLUSTERING ORDER BY(time ASC);").Exec()
 	err = session.Query("CREATE TABLE friends(emailF1 text,myemail text, friendName text , addedEmailf1 text, addbymyemail text PRIMARY KEY(emailF1,myemail));").Exec()
 	err = session.Query("CREATE TABLE grpchatdb(groupID uuid,friendEmail text,msg text,msgID uuid,time timestamp, PRIMARY KEY((groupID),time)) WITH CLUSTERING ORDER BY(time ASC);").Exec()
-	err = session.Query("CREATE TABLE grpdetaildb(groupID uuid,groupName text,adminEmail text, friendEmail text, PRIMARY KEY(groupID));").Exec()
+	err = session.Query("CREATE TABLE grpdetaildb(ID UUID, groupID text,groupName text,adminEmail text, friendEmail text, PRIMARY KEY(ID));").Exec()
 
 	if err != nil {
 		log.Println(err)
@@ -74,30 +74,32 @@ func TableRegisterInsertions(password string, email string, publickey string, us
 //insert to chat db
 //([]string)
 
-func GroupChatDetailsInsertion(AdminEmail string, groupName string, friendEmail string) [3]string {
+func GroupChatDetailsInsertion(groupID string, groupname string, adminemail string, friendEmail string) [4]string {
 	Tables()
 	var (
+		grpID      string
 		grpName    string
 		adminEmail string
 		frndEmail  string
-		msgArray   [3]string
-		emptyArr   [3]string
+		msgArray   [4]string
+		emptyArr   [4]string
 	)
-	err := session.Query("INSERT INTO grpdetaildb(groupID,adminemail,friendEmail,groupname) VALUES(now(),?,?,?);", AdminEmail, friendEmail, groupName).Exec()
+	err := session.Query("INSERT INTO grpdetaildb(ID,groupID,groupname,adminemail,friendEmail) VALUES(now(),?,?,?,?);", groupID, groupname, adminemail, friendEmail).Exec()
 	//Todo: Write a new select query to get grp chats which is i'm already in
-	iter := session.Query("Select groupName,adminEmail,friendemail from grpdetaildb where AdminEmail = ?  ALLOW FILTERING;", AdminEmail).Iter()
+	iter := session.Query("Select groupID,groupName,adminEmail,friendemail from grpdetaildb where AdminEmail = ?  ALLOW FILTERING;", adminemail).Iter()
 
 	scanner := iter.Scanner()
 
 	for scanner.Next() {
-		err := scanner.Scan(&grpName, &adminEmail, &frndEmail)
+		err := scanner.Scan(&grpID, &grpName, &adminEmail, &frndEmail)
 		if err != nil {
 			log.Println("error in iter - groupchatDetails ")
 			return emptyArr
 		}
-		msgArray[0] = groupName
-		msgArray[1] = adminEmail
-		msgArray[2] = friendEmail
+		msgArray[0] = grpID
+		msgArray[1] = grpName
+		msgArray[2] = adminEmail
+		msgArray[3] = frndEmail
 	}
 
 	if err != nil {

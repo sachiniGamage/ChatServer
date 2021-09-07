@@ -8,6 +8,7 @@ import (
 	codes "google.golang.org/grpc/codes"
 	status "google.golang.org/grpc/status"
 	emptypb "google.golang.org/protobuf/types/known/emptypb"
+	wrapperspb "google.golang.org/protobuf/types/known/wrapperspb"
 )
 
 // This is a compile-time assertion to ensure that this generated file
@@ -330,6 +331,7 @@ type UpdateUserClient interface {
 	UpdateName(ctx context.Context, in *Edit, opts ...grpc.CallOption) (*RegisterUser, error)
 	AddFriend(ctx context.Context, in *AddFriendReq, opts ...grpc.CallOption) (*AddFriendReq, error)
 	AddFriendsToGroup(ctx context.Context, in *AddGrpFriendReq, opts ...grpc.CallOption) (*AddGrpFriendReq, error)
+	GetGroup(ctx context.Context, in *wrapperspb.StringValue, opts ...grpc.CallOption) (*ViewGroup, error)
 	CreateGroup(ctx context.Context, in *MakeGroup, opts ...grpc.CallOption) (*MakeGroup, error)
 	GetFriends(ctx context.Context, in *ViewFriends, opts ...grpc.CallOption) (*ViewFriends, error)
 }
@@ -369,6 +371,15 @@ func (c *updateUserClient) AddFriendsToGroup(ctx context.Context, in *AddGrpFrie
 	return out, nil
 }
 
+func (c *updateUserClient) GetGroup(ctx context.Context, in *wrapperspb.StringValue, opts ...grpc.CallOption) (*ViewGroup, error) {
+	out := new(ViewGroup)
+	err := c.cc.Invoke(ctx, "/service.UpdateUser/GetGroup", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 func (c *updateUserClient) CreateGroup(ctx context.Context, in *MakeGroup, opts ...grpc.CallOption) (*MakeGroup, error) {
 	out := new(MakeGroup)
 	err := c.cc.Invoke(ctx, "/service.UpdateUser/CreateGroup", in, out, opts...)
@@ -394,6 +405,7 @@ type UpdateUserServer interface {
 	UpdateName(context.Context, *Edit) (*RegisterUser, error)
 	AddFriend(context.Context, *AddFriendReq) (*AddFriendReq, error)
 	AddFriendsToGroup(context.Context, *AddGrpFriendReq) (*AddGrpFriendReq, error)
+	GetGroup(context.Context, *wrapperspb.StringValue) (*ViewGroup, error)
 	CreateGroup(context.Context, *MakeGroup) (*MakeGroup, error)
 	GetFriends(context.Context, *ViewFriends) (*ViewFriends, error)
 	mustEmbedUnimplementedUpdateUserServer()
@@ -411,6 +423,9 @@ func (UnimplementedUpdateUserServer) AddFriend(context.Context, *AddFriendReq) (
 }
 func (UnimplementedUpdateUserServer) AddFriendsToGroup(context.Context, *AddGrpFriendReq) (*AddGrpFriendReq, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method AddFriendsToGroup not implemented")
+}
+func (UnimplementedUpdateUserServer) GetGroup(context.Context, *wrapperspb.StringValue) (*ViewGroup, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetGroup not implemented")
 }
 func (UnimplementedUpdateUserServer) CreateGroup(context.Context, *MakeGroup) (*MakeGroup, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method CreateGroup not implemented")
@@ -485,6 +500,24 @@ func _UpdateUser_AddFriendsToGroup_Handler(srv interface{}, ctx context.Context,
 	return interceptor(ctx, in, info, handler)
 }
 
+func _UpdateUser_GetGroup_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(wrapperspb.StringValue)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(UpdateUserServer).GetGroup(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/service.UpdateUser/GetGroup",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(UpdateUserServer).GetGroup(ctx, req.(*wrapperspb.StringValue))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 func _UpdateUser_CreateGroup_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(MakeGroup)
 	if err := dec(in); err != nil {
@@ -539,6 +572,10 @@ var UpdateUser_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "AddFriendsToGroup",
 			Handler:    _UpdateUser_AddFriendsToGroup_Handler,
+		},
+		{
+			MethodName: "GetGroup",
+			Handler:    _UpdateUser_GetGroup_Handler,
 		},
 		{
 			MethodName: "CreateGroup",

@@ -134,6 +134,7 @@ func (s *MessagingService) GroupChat(stream stub.ChatService_GroupChatServer) er
 
 		log.Println("Add message: " + in.Msg + " From: " + in.FriendEmail)
 
+		//Todo: Add in.randomuuid to first parameter
 		cassandra.GroupChatTableInsert(in.FriendEmail, in.Msg)
 
 		if sendErr := stream.Send(&msg); sendErr != nil {
@@ -260,21 +261,23 @@ func (s *EditService) UpdateName(ctx context.Context, in *stub.Edit) (*stub.Regi
 func (s *EditService) CreateGroup(ctx context.Context, in *stub.MakeGroup) (*stub.MakeGroup, error) {
 	fmt.Println("Create Group Function Triggered.")
 	grp := stub.MakeGroup{
+		GroupId:     in.GroupId,
 		GroupName:   in.GroupName,
 		AdminEmail:  in.AdminEmail,
 		FriendEmail: in.FriendEmail,
 	}
 	grp.GroupName = "Group Name: " + in.GroupName
+	getGroupDetails := cassandra.GroupChatDetailsInsertion(in.GroupId, in.GroupName, in.AdminEmail, in.FriendEmail)
 
-	getGroupDetails := cassandra.GroupChatDetailsInsertion(in.AdminEmail, in.FriendEmail, in.GroupName)
-
-	var emptyArr [3]string
+	var emptyArr [4]string
 	if getGroupDetails != emptyArr {
 		details := &stub.MakeGroup{
-			GroupName:   getGroupDetails[0],
-			AdminEmail:  getGroupDetails[1],
-			FriendEmail: getGroupDetails[2],
+			GroupId:     getGroupDetails[0],
+			GroupName:   getGroupDetails[1],
+			AdminEmail:  getGroupDetails[2],
+			FriendEmail: getGroupDetails[3],
 		}
+		grp.GroupId = details.GroupId
 		grp.GroupName = details.GroupName
 		grp.AdminEmail = details.AdminEmail
 		grp.FriendEmail = details.FriendEmail
