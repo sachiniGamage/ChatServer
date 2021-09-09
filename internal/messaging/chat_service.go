@@ -136,7 +136,7 @@ func (s *MessagingService) GroupChat(stream stub.ChatService_GroupChatServer) er
 		log.Println("Add message: " + in.Msg + " From: " + in.FriendEmail)
 
 		//Todo: Add in.randomuuid to first parameter
-		cassandra.GroupChatTableInsert(in.FriendEmail, in.Msg)
+		cassandra.GroupChatTableInsert(in.GroupDetails.FriendEmail, in.GroupDetails.GroupId, in.Msg)
 
 		if sendErr := stream.Send(&msg); sendErr != nil {
 			return sendErr

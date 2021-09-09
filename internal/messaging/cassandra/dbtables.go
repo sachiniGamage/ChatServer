@@ -21,6 +21,9 @@ type ChatRetrieveStruct struct {
 	time    int64
 }
 
+type GroupChatRetriveStruct struct {
+}
+
 var cluster *gocql.ClusterConfig
 var session *gocql.Session
 var Scanner gocql.Scanner
@@ -111,7 +114,7 @@ func GroupChatDetailsInsertion(groupID string, groupname string, adminemail stri
 
 }
 
-func GroupChatTableInsert(friendEmail string, message string) [3]string {
+func GroupChatTableInsert(friendEmail string, groupId string, message string) [3]string {
 	Tables()
 
 	var (
@@ -122,7 +125,7 @@ func GroupChatTableInsert(friendEmail string, message string) [3]string {
 		emptyArr  [3]string
 	)
 
-	err := session.Query("INSERT INTO grpchatdb(groupID,friendEmail,msg,msgID,time) VALUES(now(),?,?,now(),toUnixTimestamp(now()));", friendEmail, message).Exec()
+	err := session.Query("INSERT INTO grpchatdb(groupID,friendEmail,msg,msgID,time) VALUES(?,?,?,now(),toUnixTimestamp(now()));", groupId, friendEmail, message).Exec()
 	iter := session.Query("Select friendEmail,msg,time from grgpchatdb ").Iter()
 
 	scanner := iter.Scanner()
@@ -201,6 +204,13 @@ func ChatTableInsert(fromUser string, toUser string, sendmsg string) []string {
 	}
 
 	return msgArray
+}
+
+func GroupChatRetrieve(groupId string) {
+	Tables()
+
+	// iter := session.Query("").Iter()
+
 }
 
 func ChatRetrieve(user string) []ChatRetrieveStruct {
