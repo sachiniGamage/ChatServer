@@ -22,6 +22,10 @@ type ChatRetrieveStruct struct {
 }
 
 type GroupChatRetriveStruct struct {
+	Friendemail string
+	Message     string
+	GroupID     string
+	Time        int64
 }
 
 var cluster *gocql.ClusterConfig
@@ -206,16 +210,138 @@ func ChatTableInsert(fromUser string, toUser string, sendmsg string) []string {
 	return msgArray
 }
 
-func GroupChatRetrieve(groupId string) {
+func CheckId(array []string, id string) bool {
+	var i int
+	for i = 0; i < len(array); i++ {
+		if array[i] == id {
+			return true
+		}
+	}
+	return false
+}
+
+func GroupChatRetrieve(email string) []GroupChatRetriveStruct {
 	Tables()
 
-	// iter := session.Query("").Iter()
+	var (
+		msg         string
+		friendemail string
+		groupid     string
+		time        int64
+		count       int
+		arr         []string
+		msgArr      []GroupChatRetriveStruct
+	)
+	iter2 := session.Query("select groupid from grpdetaildb where friendemail =? ALLOW FILTERING;", email).Iter()
+	iter3 := session.Query("select groupid from grpdetaildb where adminemail =? ALLOW FILTERING;", email).Iter()
+
+	// iter := session.Query("select msg,friendemail,groupid,time from grpchatdb where groupid =? ", iter2).Iter()
+	// iter4 := session.Query("select msg,friendemail,groupid,time from grpchatdb where groupid =? ", iter3).Iter()
+
+	scanner2 := iter2.Scanner()
+	scanner3 := iter3.Scanner()
+
+	if scanner2 != nil || scanner3 != nil {
+
+		for scanner2.Next() {
+			var id string
+			err := scanner2.Scan(&id)
+			if err != nil {
+				log.Println("iter ")
+			}
+			arr = append(arr, id)
+		}
+
+		for scanner3.Next() {
+			var id string
+			err := scanner3.Scan(&id)
+			if err != nil {
+				log.Println("iter ")
+			}
+			if !CheckId(arr, id) {
+				arr = append(arr, id)
+			}
+
+		}
+
+		for i := 0; i < len(arr); i++ {
+			iter := session.Query("select msg,friendemail,groupid,time from grpchatdb where groupid =? ", arr[i]).Iter()
+			scanner := iter.Scanner()
+
+			log.Println(iter)
+			log.Println(arr[i])
+			log.Println("grp chat**")
+
+			if scanner != nil {
+				for scanner.Next() {
+					err := scanner.Scan(&msg, &friendemail, &groupid, &time)
+					if err != nil {
+						log.Println("iter ")
+					}
+					log.Println("msg")
+					log.Println(msg)
+					msgArr = append(msgArr, GroupChatRetriveStruct{Friendemail: friendemail, Message: msg, GroupID: groupid, Time: time})
+
+					count++
+					if count == 50 {
+						break
+					}
+				}
+			}
+		}
+
+		// iter := session.Query("select msg,friendemail,groupid,time from grpchatdb where groupid =? ", iter2).Iter()
+		// iter4 := session.Query("select msg,friendemail,groupid,time from grpchatdb where groupid =? ", iter3).Iter()
+
+		// scanner4 := iter4.Scanner()
+
+		// if scanner != nil {
+		// 	for scanner.Next() {
+		// 		err := scanner.Scan(&msg, &friendemail, &groupid, &time)
+		// 		if err != nil {
+		// 			log.Println("iter ")
+		// 		}
+
+		// 		msgArr = append(msgArr, GroupChatRetriveStruct{Friendemail: friendemail, Message: msg, GroupID: groupid, Time: time})
+
+		// 		count++
+		// 		if count == 50 {
+		// 			break
+		// 		}
+		// 	}
+		// } else if scanner4 != nil {
+		// 	for scanner4.Next() {
+		// 		err := scanner4.Scan(&msg, &friendemail, &groupid, &time)
+		// 		if err != nil {
+		// 			log.Println("iter ")
+		// 		}
+
+		// 		msgArr = append(msgArr, GroupChatRetriveStruct{Friendemail: friendemail, Message: msg, GroupID: groupid, Time: time})
+
+		// 		count++
+		// 		if count == 50 {
+		// 			break
+		// 		}
+		// 	}
+		// }
+	}
+
+	// //merge sort
+
+	// var (
+	// 	ArrLen1 int
+	// 	i       int
+	// 	j       int
+	// )
+
+	// ArrLen1 = len(msgArr)
+
+	return msgArr
 
 }
 
 func ChatRetrieve(user string) []ChatRetrieveStruct {
 	Tables()
-
 	var (
 		msg       string
 		fromuser  string
@@ -226,7 +352,6 @@ func ChatRetrieve(user string) []ChatRetrieveStruct {
 		msgArray2 []ChatRetrieveStruct
 		count     int
 	)
-
 	iter := session.Query("Select msg,fromuser,touser,time from chatdb where fromuser = ? ALLOW FILTERING;", user).Iter()
 
 	iter2 := session.Query("Select msg,fromuser,touser,time from chatdb where  touser = ?  ALLOW FILTERING;", user).Iter()

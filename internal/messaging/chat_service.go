@@ -48,16 +48,47 @@ type RecieveMsg struct {
 
 type RecieveGrpMsg struct {
 	friendEmail string
-	msg         string
-	groupName   string
+	Msg         string
+	GroupID     string
+	Time        int64
 }
 
 var values []string
 var doOnce map[string]sync.Once
 var channelMap map[string]chan RecieveMsg
+var channelMap2 map[string]chan RecieveGrpMsg
 
 func init() {
 	channelMap = make(map[string]chan RecieveMsg)
+	channelMap2 = make(map[string]chan RecieveGrpMsg)
+}
+
+func GroupChatRetrieve(sendStream stub.ChatService_GroupChatServer, groupId string) {
+	log.Println("start a group chat receiveing channel for groupID: " + groupId)
+	c, ok := channelMap2[groupId]
+	if !ok {
+		c = make(chan RecieveGrpMsg)
+		channelMap2[groupId] = c
+	}
+	groupIDRelatedMsgs := cassandra.GroupChatRetrieve(groupId)
+
+	for _, s := range groupIDRelatedMsgs {
+		msg := stub.GroupMessageFromServer{
+			GroupList: &stub.GroupMessage{
+				GroupDetails: &stub.MakeGroup{
+					GroupId:     s.GroupID,
+					FriendEmail: s.Friendemail,
+				},
+				Msg: s.Message,
+			},
+			// Timestamp: s.Time,
+		}
+
+		if sendErr := sendStream.Send(&msg); sendErr != nil {
+			fmt.Println(sendErr)
+		}
+	}
+
 }
 
 func chatRecieve(sendStream stub.ChatService_ChatServer, user string) {
@@ -112,6 +143,15 @@ func chatRecieve(sendStream stub.ChatService_ChatServer, user string) {
 }
 
 func (s *MessagingService) GroupChat(stream stub.ChatService_GroupChatServer) error {
+	md, ok := metadata.FromIncomingContext(stream.Context())
+	if ok {
+		values = md.Get("fromuser")
+		fmt.Println(values)
+	}
+	log.Println("Chat method invocation from: " + values[0])
+
+	go GroupChatRetrieve(stream, values[0])
+
 	fmt.Println("GroupChat Function Triggered.")
 	for {
 
@@ -127,17 +167,35 @@ func (s *MessagingService) GroupChat(stream stub.ChatService_GroupChatServer) er
 		fmt.Println("Group Chat message is recieved: " + in.Msg + " From: " + in.FriendEmail)
 		// go chatRecieve(stream, in.To)
 
+		GroupIDhannel, ok := channelMap2[in.GroupDetails.GroupId]
+		if !ok {
+			GroupIDhannel = make(chan RecieveGrpMsg, 1000)
+			fmt.Println(" To Channel is created for : " + in.GroupDetails.GroupId)
+			channelMap2[in.GroupDetails.GroupId] = GroupIDhannel
+
+		}
+
 		msg := stub.GroupMessageFromServer{
 			GroupList: &stub.GroupMessage{
 				GroupDetails: &stub.MakeGroup{},
 			},
 		}
 
-		log.Println("Add message: " + in.Msg + " From: " + in.FriendEmail)
+		var recMsg RecieveGrpMsg
+		recMsg = RecieveGrpMsg{
+			friendEmail: in.GroupDetails.FriendEmail,
+			Msg:         in.Msg,
+			GroupID:     in.GroupDetails.GroupId,
+		}
+		GroupIDhannel <- recMsg
+
+		log.Println("Add message: " + in.Msg + " From: " + in.GroupDetails.FriendEmail)
 
 		//Todo: Add in.randomuuid to first parameter
 		cassandra.GroupChatTableInsert(in.GroupDetails.FriendEmail, in.GroupDetails.GroupId, in.Msg)
 
+		log.Println("cht")
+		log.Println(msg.GroupList.Msg)
 		if sendErr := stream.Send(&msg); sendErr != nil {
 			return sendErr
 		}
