@@ -490,14 +490,14 @@ func Login(email string, passwrd string) string {
 	return publickey
 }
 
-func UpdateName(name string) {
+func UpdateName(name string, myemail string) {
 	Tables()
 
 	if session == nil {
 		log.Println("session not available")
 	}
 	log.Println("session available")
-	err := session.Query("UPDATE register SET username = ? where useremail = 's' ;", name).Exec()
+	err := session.Query("UPDATE register SET username = ? where useremail = ?;", name, myemail).Exec()
 	log.Println("Name updated")
 	if err != nil {
 		log.Println(err)

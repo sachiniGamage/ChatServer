@@ -63,14 +63,16 @@ func init() {
 	channelMap2 = make(map[string]chan RecieveGrpMsg)
 }
 
-func GroupChatRetrieve(sendStream stub.ChatService_GroupChatServer, groupId string) {
-	log.Println("start a group chat receiveing channel for groupID: " + groupId)
-	c, ok := channelMap2[groupId]
+func GroupChatRetrieve(sendStream stub.ChatService_GroupChatServer, user string) {
+
+	//groupid -> fromuser
+	log.Println("start a group chat receiveing channel for groupID: " + user)
+	c, ok := channelMap2[user]
 	if !ok {
 		c = make(chan RecieveGrpMsg)
-		channelMap2[groupId] = c
+		channelMap2[user] = c
 	}
-	groupIDRelatedMsgs := cassandra.GroupChatRetrieve(groupId)
+	groupIDRelatedMsgs := cassandra.GroupChatRetrieve(user)
 
 	for _, s := range groupIDRelatedMsgs {
 		msg := stub.GroupMessageFromServer{
@@ -195,7 +197,14 @@ func (s *MessagingService) GroupChat(stream stub.ChatService_GroupChatServer) er
 		cassandra.GroupChatTableInsert(in.GroupDetails.FriendEmail, in.GroupDetails.GroupId, in.Msg)
 
 		log.Println("cht")
+
+		msg.GroupList.Msg = in.Msg
+		msg.GroupList.GroupDetails.FriendEmail = in.GroupDetails.FriendEmail
+		msg.GroupList.GroupDetails.GroupId = in.GroupDetails.GroupId
 		log.Println(msg.GroupList.Msg)
+		log.Println(msg.GroupList.GroupDetails.FriendEmail)
+		log.Println(msg.GroupList.GroupDetails.GroupId)
+		log.Println(msg)
 		if sendErr := stream.Send(&msg); sendErr != nil {
 			return sendErr
 		}
@@ -312,7 +321,8 @@ func (s *EditService) UpdateName(ctx context.Context, in *stub.Edit) (*stub.Regi
 
 	updt := stub.Edit{}
 	updt.Username = "received name : " + in.Username
-	cassandra.UpdateName(in.Username)
+	//parameter 2t myemail
+	cassandra.UpdateName(in.Username, in.Username)
 
 	return &stub.RegisterUser{}, nil
 }
