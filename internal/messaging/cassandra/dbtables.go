@@ -26,6 +26,7 @@ type GroupChatRetriveStruct struct {
 	Message     string
 	GroupID     string
 	Time        int64
+	AdminEmail  string
 }
 
 var cluster *gocql.ClusterConfig
@@ -226,6 +227,7 @@ func GroupChatRetrieve(email string) []GroupChatRetriveStruct {
 	var (
 		msg         string
 		friendemail string
+		adminemail  string
 		groupid     string
 		time        int64
 		count       int
@@ -266,7 +268,10 @@ func GroupChatRetrieve(email string) []GroupChatRetriveStruct {
 
 		for i := 0; i < len(arr); i++ {
 			iter := session.Query("select msg,friendemail,groupid,time from grpchatdb where groupid =? ", arr[i]).Iter()
+			iter4 := session.Query("select friendemail,adminemail from grpdetaildb where groupid = ?", arr[i]).Iter()
+
 			scanner := iter.Scanner()
+			scanner2 := iter4.Scanner()
 
 			log.Println(iter)
 			log.Println(arr[i])
@@ -288,7 +293,44 @@ func GroupChatRetrieve(email string) []GroupChatRetriveStruct {
 					}
 				}
 			}
+
+			if scanner2 != nil {
+				for scanner2.Next() {
+					err := scanner2.Scan(&adminemail)
+					if err != nil {
+						log.Println("iter ")
+					}
+					log.Println("adminemail")
+					log.Println(adminemail)
+					msgArr = append(msgArr, GroupChatRetriveStruct{AdminEmail: adminemail})
+
+					count++
+					if count == 50 {
+						break
+					}
+				}
+			}
 		}
+		// var j int
+		// for j=0; j<len(arr);j++{
+		// 	iter4 := session.Query("select friendemail,adminemail from grpdetaildb where groupid = ?",arr[j]).Iter()
+		// 	scanner := iter4.Scanner()
+		// 	log.Println(iter4)
+		// 	log.Println(arr[j])
+		// 	log.Println("from user**")
+
+		// 	if scanner != nil {
+		// 		for scanner.Next() {
+		// 			err := scanner.Scan(&msg, &friendemail, &groupid, &time)
+		// 			if err != nil {
+		// 				log.Println("iter ")
+		// 			}
+		// 			log.Println("msg")
+		// 			log.Println(msg)
+		// 		}
+		// 	}
+
+		// }
 
 		// iter := session.Query("select msg,friendemail,groupid,time from grpchatdb where groupid =? ", iter2).Iter()
 		// iter4 := session.Query("select msg,friendemail,groupid,time from grpchatdb where groupid =? ", iter3).Iter()
@@ -338,6 +380,33 @@ func GroupChatRetrieve(email string) []GroupChatRetriveStruct {
 
 	return msgArr
 
+}
+
+func GroupUsers(groupId string) []string {
+	Tables()
+
+	iter4 := session.Query("select friendemail,adminemail from grpdetaildb where groupid = ? allow filtering", groupId).Iter()
+	scanner := iter4.Scanner()
+	var userArr []string
+	var adminemail string
+	if scanner != nil {
+		for scanner.Next() {
+			var (
+				friendemail string
+			)
+			err := scanner.Scan(&friendemail, &adminemail)
+			if err != nil {
+				log.Println("iter ")
+			}
+			log.Println("msg")
+			log.Println(friendemail)
+
+			userArr = append(userArr, friendemail)
+
+		}
+		userArr = append(userArr, adminemail)
+	}
+	return userArr
 }
 
 func ChatRetrieve(user string) []ChatRetrieveStruct {

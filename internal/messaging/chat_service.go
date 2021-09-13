@@ -91,6 +91,28 @@ func GroupChatRetrieve(sendStream stub.ChatService_GroupChatServer, user string)
 		}
 	}
 
+	for i := range c {
+		msg := stub.GroupMessageFromServer{
+			GroupList: &stub.GroupMessage{
+				GroupDetails: &stub.MakeGroup{
+					GroupId:     i.GroupID,
+					FriendEmail: i.friendEmail,
+				},
+				Msg: i.Msg,
+			},
+			// Timestamp: s.Time,
+		}
+		msg.GroupList.GroupDetails.FriendEmail = i.friendEmail
+		msg.GroupList.GroupDetails.GroupId = i.GroupID
+		msg.GroupList.Msg = i.Msg
+
+		log.Println("Received msg - grp: " + msg.GroupList.Msg + "from :" + msg.GroupList.GroupDetails.FriendEmail + " is forwarded to the the user: " + user)
+		if sendErr := sendStream.Send(&msg); sendErr != nil {
+			fmt.Println(sendErr)
+		}
+
+	}
+
 }
 
 func chatRecieve(sendStream stub.ChatService_ChatServer, user string) {
@@ -167,14 +189,28 @@ func (s *MessagingService) GroupChat(stream stub.ChatService_GroupChatServer) er
 			return err
 		}
 		fmt.Println("Group Chat message is recieved: " + in.Msg + " From: " + in.FriendEmail)
-		// go chatRecieve(stream, in.To)
+		// go GroupChatRetrieve(stream, in.FriendEmail)
 
-		GroupIDhannel, ok := channelMap2[in.GroupDetails.GroupId]
-		if !ok {
-			GroupIDhannel = make(chan RecieveGrpMsg, 1000)
-			fmt.Println(" To Channel is created for : " + in.GroupDetails.GroupId)
-			channelMap2[in.GroupDetails.GroupId] = GroupIDhannel
+		userArr := cassandra.GroupUsers(in.GroupDetails.GroupId)
+		for i := 0; i < len(userArr); i++ {
+			if userArr[i] == in.GroupDetails.FriendEmail {
+				continue
+			}
+			GroupIDhannel, ok := channelMap2[userArr[i]]
+			if !ok {
+				GroupIDhannel = make(chan RecieveGrpMsg, 1000)
+				fmt.Println(" To Channel is created for : " + userArr[i])
+				channelMap2[userArr[i]] = GroupIDhannel
 
+			}
+
+			var recMsg RecieveGrpMsg
+			recMsg = RecieveGrpMsg{
+				friendEmail: in.GroupDetails.FriendEmail,
+				Msg:         in.Msg,
+				GroupID:     in.GroupDetails.GroupId,
+			}
+			GroupIDhannel <- recMsg
 		}
 
 		msg := stub.GroupMessageFromServer{
@@ -182,14 +218,6 @@ func (s *MessagingService) GroupChat(stream stub.ChatService_GroupChatServer) er
 				GroupDetails: &stub.MakeGroup{},
 			},
 		}
-
-		var recMsg RecieveGrpMsg
-		recMsg = RecieveGrpMsg{
-			friendEmail: in.GroupDetails.FriendEmail,
-			Msg:         in.Msg,
-			GroupID:     in.GroupDetails.GroupId,
-		}
-		GroupIDhannel <- recMsg
 
 		log.Println("Add message: " + in.Msg + " From: " + in.GroupDetails.FriendEmail)
 
