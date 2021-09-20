@@ -60,7 +60,7 @@ func Tables() {
 	}
 
 	// cluster.Consistency = gocql.Any
-	cluster.Consistency = gocql.One
+	// cluster.Consistency = gocql.One
 	cluster.ProtoVersion = 4
 	cluster.ConnectTimeout = time.Second * 10
 	cluster.Keyspace = "sender"
