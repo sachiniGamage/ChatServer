@@ -1,8 +1,10 @@
 package cassandra
 
 import (
+	"crypto/tls"
 	"fmt"
 	"log"
+	"path/filepath"
 	"time"
 
 	"github.com/gocql/gocql"
@@ -34,13 +36,35 @@ var session *gocql.Session
 var Scanner gocql.Scanner
 
 func Tables() {
+	var _cqlshrc_host = "86ce02b2-04e7-41e4-8278-764e9b1e5ae1-asia-south1.apps.astra.datastax.com"
+	var _cqlshrc_port = "29042"
+	var _username = "ssgdummy1@gmail.com"
+	var _password = "YzTTkb3T#CiKy2!"
+	cluster = gocql.NewCluster(_cqlshrc_host)
+	cluster.Authenticator = gocql.PasswordAuthenticator{
+		Username: _username,
+		Password: _password,
+	}
+	cluster.Hosts = []string{_cqlshrc_host + ":" + _cqlshrc_port}
+	certPath, _ := filepath.Abs("/home/sachini/Desktop/Cassandra/cert")
+	keyPath, _ := filepath.Abs("/home/sachini/Desktop/Cassandra/key")
+	cert, _ := tls.LoadX509KeyPair(certPath, keyPath)
 
-	cluster = gocql.NewCluster("127.0.0.1")
+	tlsConfig := &tls.Config{
+		Certificates:       []tls.Certificate{cert},
+		InsecureSkipVerify: true,
+	}
+	cluster.SslOpts = &gocql.SslOptions{
+		Config:                 tlsConfig,
+		EnableHostVerification: false,
+	}
+
 	// cluster.Consistency = gocql.Any
 	cluster.Consistency = gocql.One
 	cluster.ProtoVersion = 4
 	cluster.ConnectTimeout = time.Second * 10
 	cluster.Keyspace = "sender"
+
 	var err error
 	session, err = cluster.CreateSession()
 	if err != nil {
@@ -49,7 +73,7 @@ func Tables() {
 	}
 	err = session.Query("CREATE TABLE register( registerID int, password text, userEmail text,publickey text, userName text, PRIMARY KEY(userEmail,publickey));").Exec()
 	err = session.Query("CREATE TABLE chatdb( registerID int, chatID uuid,msgID uuid, fromUser text, toUser text ,msg text, username text,time timestamp, PRIMARY KEY((fromUser,toUser),time)) WITH CLUSTERING ORDER BY(time ASC);").Exec()
-	err = session.Query("CREATE TABLE friends(emailF1 text,myemail text, friendName text , addedEmailf1 text, addbymyemail text PRIMARY KEY(emailF1,myemail));").Exec()
+	err = session.Query("CREATE TABLE friends(emailF1 text,myemail text, friendName text , addedEmailf1 text, addbymyemail text ,PRIMARY KEY(emailF1,myemail));").Exec()
 	err = session.Query("CREATE TABLE grpchatdb(groupID uuid,friendEmail text,msg text,msgID uuid,time timestamp, PRIMARY KEY((groupID),time)) WITH CLUSTERING ORDER BY(time ASC);").Exec()
 	err = session.Query("CREATE TABLE grpdetaildb(ID UUID, groupID text,groupName text,adminEmail text, friendEmail text, PRIMARY KEY(ID));").Exec()
 
