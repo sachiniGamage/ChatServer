@@ -8,8 +8,6 @@ import (
 	"time"
 
 	"github.com/gocql/gocql"
-	// "google.golang.org/genproto/googleapis/bigtable/admin/cluster/v1"
-	//"github.com/SachiniGamage/ChatServer/internal/messaging/cassandra"
 )
 
 type MessageManager struct {

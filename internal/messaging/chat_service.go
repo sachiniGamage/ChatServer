@@ -6,16 +6,10 @@ import (
 	"log"
 	"sync"
 
-	// "go/token"
 	"io"
-
-	// "log"
 
 	"github.com/SachiniGamage/ChatServer/internal/messaging/cassandra"
 	"github.com/SachiniGamage/ChatServer/stub"
-
-	// "google.golang.org/grpc"
-	// "google.golang.org/grpc/credentials/oauth"
 
 	"google.golang.org/grpc/metadata"
 	"google.golang.org/protobuf/types/known/emptypb"
