@@ -11,7 +11,6 @@ import (
 )
 
 func main() {
-
 	fmt.Println("hello world")
 
 	messageService := &messaging.MessagingService{}
@@ -34,5 +33,4 @@ func main() {
 	stub.RegisterUpdateUserServer(grpcServer, updateService)
 	//blocking wait until process is killed
 	grpcServer.Serve(lis)
-
 }

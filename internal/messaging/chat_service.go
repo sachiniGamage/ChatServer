@@ -3,10 +3,9 @@ package messaging
 import (
 	"context"
 	"fmt"
+	"io"
 	"log"
 	"sync"
-
-	"io"
 
 	"github.com/SachiniGamage/ChatServer/internal/messaging/cassandra"
 	"github.com/SachiniGamage/ChatServer/stub"
@@ -59,7 +58,6 @@ func init() {
 
 //get group chat - from user
 func GroupChatRetrieve(sendStream stub.ChatService_GroupChatServer, user string) {
-
 	log.Println("start a group chat receiveing channel for groupID: " + user)
 	c, ok := channelMap2[user]
 	if !ok {
@@ -79,7 +77,6 @@ func GroupChatRetrieve(sendStream stub.ChatService_GroupChatServer, user string)
 				Msg: s.Message,
 			},
 		}
-
 		if sendErr := sendStream.Send(&msg); sendErr != nil {
 			fmt.Println(sendErr)
 		}
@@ -103,14 +100,11 @@ func GroupChatRetrieve(sendStream stub.ChatService_GroupChatServer, user string)
 		if sendErr := sendStream.Send(&msg); sendErr != nil {
 			fmt.Println(sendErr)
 		}
-
 	}
-
 }
 
 //get private chat messages
 func chatRecieve(sendStream stub.ChatService_ChatServer, user string) {
-
 	log.Println("start a chat receiveing channel for user: " + user)
 
 	c, ok := channelMap[user]
@@ -119,9 +113,7 @@ func chatRecieve(sendStream stub.ChatService_ChatServer, user string) {
 		channelMap[user] = c
 	}
 	userRelatedMsgs := cassandra.ChatRetrieve(user)
-
 	for _, s := range userRelatedMsgs {
-
 		msg := stub.ChatMessageFromServer{
 			Message: &stub.ChatMessage{
 				Message: s.Message,
@@ -134,26 +126,21 @@ func chatRecieve(sendStream stub.ChatService_ChatServer, user string) {
 		if sendErr := sendStream.Send(&msg); sendErr != nil {
 			fmt.Println(sendErr)
 		}
-
 	}
 
 	for i := range c {
-
 		msg := stub.ChatMessageFromServer{
 			Message: &stub.ChatMessage{
 				Message: i.message,
 				From:    i.from,
 			},
 		}
-
 		msg.Message.Message = i.message
 		log.Println("Received msg: " + msg.Message.Message + "from :" + i.from + " is forwarded to the the user: " + user)
 		if sendErr := sendStream.Send(&msg); sendErr != nil {
 			fmt.Println(sendErr)
 		}
 	}
-	// })
-
 }
 
 //group chat
@@ -169,7 +156,6 @@ func (s *MessagingService) GroupChat(stream stub.ChatService_GroupChatServer) er
 
 	fmt.Println("GroupChat Function Triggered.")
 	for {
-
 		in, err := stream.Recv()
 		if err == io.EOF {
 			fmt.Println("stream has ended")
@@ -192,9 +178,7 @@ func (s *MessagingService) GroupChat(stream stub.ChatService_GroupChatServer) er
 				GroupIDhannel = make(chan RecieveGrpMsg, 1000)
 				fmt.Println(" To Channel is created for : " + userArr[i])
 				channelMap2[userArr[i]] = GroupIDhannel
-
 			}
-
 			var recMsg RecieveGrpMsg
 			recMsg = RecieveGrpMsg{
 				friendEmail: in.GroupDetails.FriendEmail,
@@ -203,18 +187,15 @@ func (s *MessagingService) GroupChat(stream stub.ChatService_GroupChatServer) er
 			}
 			GroupIDhannel <- recMsg
 		}
-
 		msg := stub.GroupMessageFromServer{
 			GroupList: &stub.GroupMessage{
 				GroupDetails: &stub.MakeGroup{},
 			},
 		}
-
 		log.Println("Add message: " + in.Msg + " From: " + in.GroupDetails.FriendEmail)
 
 		//Todo: Add in.randomuuid to first parameter
 		cassandra.GroupChatTableInsert(in.GroupDetails.FriendEmail, in.GroupDetails.GroupId, in.Msg)
-
 		log.Println("cht")
 
 		msg.GroupList.Msg = in.Msg
@@ -232,19 +213,16 @@ func (s *MessagingService) GroupChat(stream stub.ChatService_GroupChatServer) er
 
 //private chat
 func (s *MessagingService) Chat(stream stub.ChatService_ChatServer) error {
-
 	md, ok := metadata.FromIncomingContext(stream.Context())
 	if ok {
 		values = md.Get("fromuser")
 		fmt.Println(values)
 	}
-
 	log.Println("Chat method invocation from: " + values[0])
 
 	go chatRecieve(stream, values[0])
 
 	for {
-
 		in, err := stream.Recv()
 		if err == io.EOF {
 			fmt.Println("stream has ended")
@@ -261,7 +239,6 @@ func (s *MessagingService) Chat(stream stub.ChatService_ChatServer) error {
 			toChannel = make(chan RecieveMsg, 1000)
 			fmt.Println(" To Channel is created for : " + in.To)
 			channelMap[in.To] = toChannel
-
 		}
 		msg := stub.ChatMessageFromServer{
 			Message: &stub.ChatMessage{},
@@ -276,12 +253,10 @@ func (s *MessagingService) Chat(stream stub.ChatService_ChatServer) error {
 		toChannel <- recMsg
 
 		log.Println("Add message: " + in.Message + " From: " + in.From + " to receiveMessage Channel")
-
 		cassandra.ChatTableInsert(in.From, in.To, in.Message)
 
 		msg.Message.From = in.From
 		msg.Message.Message = in.Message
-
 		if sendErr := stream.Send(&msg); sendErr != nil {
 			return sendErr
 		}
@@ -290,15 +265,11 @@ func (s *MessagingService) Chat(stream stub.ChatService_ChatServer) error {
 
 //register user
 func (s *AuthenticationService) Register(ctx context.Context, in *stub.RegisterUser) (*emptypb.Empty, error) {
-
 	fmt.Println("Register Function Triggered.")
 	reg := stub.RegisterUser{}
 	reg.Email = "received email : " + in.Email
-
 	cassandra.TableRegisterInsertions(in.Password, in.Email, in.PublicKey, in.Username)
-
 	return new(emptypb.Empty), nil
-
 }
 
 //login user
@@ -306,7 +277,6 @@ func (s *AuthenticationService) Login(ctx context.Context, in *stub.LoginUser) (
 	fmt.Println("Login Function Triggered.")
 	login := stub.LoginUser{}
 	login.Email = "email : " + in.Email
-
 	login.Password = "password checked"
 
 	pbkey := cassandra.Login(in.Email, in.Password)
@@ -326,12 +296,10 @@ func (s *AuthenticationService) Login(ctx context.Context, in *stub.LoginUser) (
 //update profile user name
 func (s *EditService) UpdateName(ctx context.Context, in *stub.Edit) (*stub.RegisterUser, error) {
 	fmt.Println("Update name Function Triggered.")
-
 	updt := stub.Edit{}
 	updt.Username = "received name : " + in.Username
 	//parameter 2t myemail
 	cassandra.UpdateName(in.Username, in.Username)
-
 	return &stub.RegisterUser{}, nil
 }
 
@@ -362,23 +330,19 @@ func (s *EditService) CreateGroup(ctx context.Context, in *stub.MakeGroup) (*stu
 	} else {
 		return nil, nil
 	}
-
 }
 
 //Add a friend - private chat
 func (s *EditService) AddFriend(ctx context.Context, in *stub.AddFriendReq) (*stub.AddFriendReq, error) {
 	fmt.Println("Add friend Function Triggered.")
-
 	updt := stub.AddFriendReq{
 		Addbymyemail: in.Addbymyemail,
-
 		Detail: &stub.FriendList{
 			Username:  in.Detail.Username,
 			PublicKey: in.Detail.PublicKey,
 		},
 	}
 	fmt.Println("Addbymyemail" + in.Addbymyemail)
-
 	getname := cassandra.AddFriend(in.Detail.FriendsEmail, in.Myemail, in.AddedEmailf1, in.Addbymyemail)
 	var emtyArr [3]string
 	if getname != emtyArr {
@@ -402,20 +366,17 @@ func (s *EditService) AddFriend(ctx context.Context, in *stub.AddFriendReq) (*st
 	} else {
 		return nil, nil
 	}
-
 }
 
 //get groups
 func (s *EditService) GetGroup(ctx context.Context, in *wrapperspb.StringValue) (*stub.ViewGroup, error) {
 	fmt.Println("get Groups Function Triggered.")
-
 	grpArray := cassandra.ViewGroupList(in.Value)
 	var groupArray []*stub.MakeGroup
 	for _, groupEntry := range grpArray {
 		grp := &stub.MakeGroup{}
 		grp.GroupId = groupEntry[0]
 		grp.GroupName = groupEntry[1]
-
 		groupArray = append(groupArray, grp)
 	}
 	finalGroupList := &stub.ViewGroup{
@@ -427,24 +388,20 @@ func (s *EditService) GetGroup(ctx context.Context, in *wrapperspb.StringValue) 
 //get friends
 func (s *EditService) GetFriends(ctx context.Context, in *stub.ViewFriends) (*stub.ViewFriends, error) {
 	fmt.Println("get friends Function Triggered.")
-
 	getFrnd := stub.ViewFriends{}
 	getFrnd.FriendsInList = in.FriendsInList
 	frientArray := cassandra.ViewFriendList(in.Myemail)
 
 	var regUserArray []*stub.RegisterUser
 	for _, friendEntry := range frientArray {
-
 		regUser := &stub.RegisterUser{}
 		regUser.Email = friendEntry[0]
 		regUser.Username = friendEntry[1]
 		regUser.EncryptedKey = friendEntry[2]
-
 		regUserArray = append(regUserArray, regUser)
 	}
 	finalFriendList := &stub.ViewFriends{
 		FriendsInList: regUserArray,
 	}
-
 	return finalFriendList, nil
 }
