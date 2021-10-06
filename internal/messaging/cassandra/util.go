@@ -12,6 +12,4 @@ func DBConnection() {
 	cluster.ProtoVersion = 4
 	cluster.ConnectTimeout = time.Second * 10
 
-	// cluster.Authenticator = gocql.PasswordAuthenticator{Username: "cassandra", Password: "Password"}
-
 }

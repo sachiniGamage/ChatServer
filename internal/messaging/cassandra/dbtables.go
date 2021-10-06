@@ -58,9 +58,6 @@ func Tables() {
 		Config:                 tlsConfig,
 		EnableHostVerification: false,
 	}
-
-	// cluster.Consistency = gocql.Any
-	// cluster.Consistency = gocql.One
 	cluster.ProtoVersion = 4
 	cluster.ConnectTimeout = time.Second * 10
 	cluster.Keyspace = "sender"
@@ -103,9 +100,7 @@ func TableRegisterInsertions(password string, email string, publickey string, us
 	fmt.Println("output: ", time_output)
 }
 
-//insert to chat db
-//([]string)
-
+//Group details
 func GroupChatDetailsInsertion(groupID string, groupname string, adminemail string, friendEmail string) [4]string {
 	Tables()
 	var (
@@ -143,6 +138,7 @@ func GroupChatDetailsInsertion(groupID string, groupname string, adminemail stri
 
 }
 
+//message in groups
 func GroupChatTableInsert(friendEmail string, groupId string, message string) [3]string {
 	Tables()
 
@@ -167,15 +163,14 @@ func GroupChatTableInsert(friendEmail string, groupId string, message string) [3
 		}
 		msgArray[0] = frndEmail
 		msgArray[1] = msg
-		// msgArray[2] = time
 	}
 	if err != nil {
 		log.Println(err)
-		// return
 	}
 	return msgArray
 }
 
+//private chat - messaging
 func ChatTableInsert(fromUser string, toUser string, sendmsg string) []string {
 	Tables()
 
@@ -183,11 +178,9 @@ func ChatTableInsert(fromUser string, toUser string, sendmsg string) []string {
 		msg      string
 		msg2     string
 		msgArray []string
-		// msgArray2 []string
-		count int
+		count    int
 	)
 	err := session.Query("INSERT INTO chatdb(fromUser,toUser,time,chatid,msg,msgid,registerid,username) VALUES(?,?,toUnixTimestamp(now()), now(),?,now(), 1, 'a');", fromUser, toUser, sendmsg).Exec()
-	// err := session.Query("INSERT INTO chatdb(registerid,chatid,msgid,fromUser,toUser,msg,username,time) VALUES(1,1,now(),?,?,?,'a',toUnixTimestamp(now()));", fromUser, toUser, sendmsg).Exec()
 	iter := session.Query("Select msg from chatdb where fromuser = ? and touser = ? order by time ALLOW FILTERING;", fromUser, toUser).Iter()
 
 	iter2 := session.Query("Select msg from chatdb where  touser = ? and fromuser = ? order by time ALLOW FILTERING;", toUser, fromUser).Iter()
@@ -207,8 +200,6 @@ func ChatTableInsert(fromUser string, toUser string, sendmsg string) []string {
 			break
 		}
 	}
-	// iter.Scan(&msg)
-	// iter2.Scan(&msg2)
 	count = 0
 	for scanner2.Next() {
 		err := scanner2.Scan(&msg2)
@@ -221,15 +212,10 @@ func ChatTableInsert(fromUser string, toUser string, sendmsg string) []string {
 			break
 		}
 		log.Println(msgArray)
-		// if iter2 != nil {
-		// 	log.Println("iter 2 : " + msg2)
-		// 	return msg2
-		// }
 
 	}
 	if err != nil {
 		log.Println(err)
-		// return
 	}
 
 	return msgArray
@@ -245,6 +231,7 @@ func CheckId(array []string, id string) bool {
 	return false
 }
 
+//get group chat details
 func GroupChatRetrieve(email string) []GroupChatRetriveStruct {
 	Tables()
 
@@ -260,9 +247,6 @@ func GroupChatRetrieve(email string) []GroupChatRetriveStruct {
 	)
 	iter2 := session.Query("select groupid from grpdetaildb where friendemail =? ALLOW FILTERING;", email).Iter()
 	iter3 := session.Query("select groupid from grpdetaildb where adminemail =? ALLOW FILTERING;", email).Iter()
-
-	// iter := session.Query("select msg,friendemail,groupid,time from grpchatdb where groupid =? ", iter2).Iter()
-	// iter4 := session.Query("select msg,friendemail,groupid,time from grpchatdb where groupid =? ", iter3).Iter()
 
 	scanner2 := iter2.Scanner()
 	scanner3 := iter3.Scanner()
@@ -335,77 +319,13 @@ func GroupChatRetrieve(email string) []GroupChatRetriveStruct {
 				}
 			}
 		}
-		// var j int
-		// for j=0; j<len(arr);j++{
-		// 	iter4 := session.Query("select friendemail,adminemail from grpdetaildb where groupid = ?",arr[j]).Iter()
-		// 	scanner := iter4.Scanner()
-		// 	log.Println(iter4)
-		// 	log.Println(arr[j])
-		// 	log.Println("from user**")
-
-		// 	if scanner != nil {
-		// 		for scanner.Next() {
-		// 			err := scanner.Scan(&msg, &friendemail, &groupid, &time)
-		// 			if err != nil {
-		// 				log.Println("iter ")
-		// 			}
-		// 			log.Println("msg")
-		// 			log.Println(msg)
-		// 		}
-		// 	}
-
-		// }
-
-		// iter := session.Query("select msg,friendemail,groupid,time from grpchatdb where groupid =? ", iter2).Iter()
-		// iter4 := session.Query("select msg,friendemail,groupid,time from grpchatdb where groupid =? ", iter3).Iter()
-
-		// scanner4 := iter4.Scanner()
-
-		// if scanner != nil {
-		// 	for scanner.Next() {
-		// 		err := scanner.Scan(&msg, &friendemail, &groupid, &time)
-		// 		if err != nil {
-		// 			log.Println("iter ")
-		// 		}
-
-		// 		msgArr = append(msgArr, GroupChatRetriveStruct{Friendemail: friendemail, Message: msg, GroupID: groupid, Time: time})
-
-		// 		count++
-		// 		if count == 50 {
-		// 			break
-		// 		}
-		// 	}
-		// } else if scanner4 != nil {
-		// 	for scanner4.Next() {
-		// 		err := scanner4.Scan(&msg, &friendemail, &groupid, &time)
-		// 		if err != nil {
-		// 			log.Println("iter ")
-		// 		}
-
-		// 		msgArr = append(msgArr, GroupChatRetriveStruct{Friendemail: friendemail, Message: msg, GroupID: groupid, Time: time})
-
-		// 		count++
-		// 		if count == 50 {
-		// 			break
-		// 		}
-		// 	}
-		// }
 	}
-
-	// //merge sort
-
-	// var (
-	// 	ArrLen1 int
-	// 	i       int
-	// 	j       int
-	// )
-
-	// ArrLen1 = len(msgArr)
 
 	return msgArr
 
 }
 
+//get group member email
 func GroupUsers(groupId string) []string {
 	Tables()
 
@@ -433,6 +353,7 @@ func GroupUsers(groupId string) []string {
 	return userArr
 }
 
+//get private chat details
 func ChatRetrieve(user string) []ChatRetrieveStruct {
 	Tables()
 	var (
@@ -469,8 +390,6 @@ func ChatRetrieve(user string) []ChatRetrieveStruct {
 			break
 		}
 	}
-	// iter.Scan(&msg)
-	// iter2.Scan(&msg2)
 	count = 0
 	for scanner2.Next() {
 		err := scanner2.Scan(&msg2, &fromuser, &touser, &time)
@@ -486,16 +405,6 @@ func ChatRetrieve(user string) []ChatRetrieveStruct {
 		if count == 50 {
 			break
 		}
-		// if iter2 != nil {
-		// 	log.Println("iter 2 : " + msg2)
-		// 	return msg2
-		// }
-
-		// var recMsg ChatRetrieveStruct
-		// recMsg = ChatRetrieveStruct{
-		// 	from: msg,
-		// 	to:   msg2,
-		// }
 	}
 
 	//merge sort
@@ -545,9 +454,6 @@ func GetMsg() {
 	}
 	log.Println("session available")
 
-	// iter := session.Query("select msg from chatdb where fromuser='s' and touser='u' ;").Iter()
-	// iter1:= session.Query("select msg from chatdb where fromuser='u' and touser='s' ;").Iter()
-
 }
 
 //login
@@ -583,6 +489,7 @@ func Login(email string, passwrd string) string {
 	return publickey
 }
 
+//update current user profile name
 func UpdateName(name string, myemail string) {
 	Tables()
 
@@ -602,6 +509,7 @@ func UpdateName(name string, myemail string) {
 
 }
 
+//add friend - private chat
 func AddFriend(emailf string, myemail string, addedEmailf1 string, addbymyemail string) [3]string {
 	Tables()
 	var (
@@ -635,7 +543,6 @@ func AddFriend(emailf string, myemail string, addedEmailf1 string, addbymyemail 
 
 			return newArray
 		}
-		// return newArray
 	}
 
 	if (iter2.NumRows()) == 0 {
@@ -646,8 +553,6 @@ func AddFriend(emailf string, myemail string, addedEmailf1 string, addbymyemail 
 		newArray[1] = publickey
 
 		iter2.Scan()
-
-		// return newArray
 	}
 
 	if (iter3.NumRows()) == 0 {
@@ -668,12 +573,6 @@ func AddFriend(emailf string, myemail string, addedEmailf1 string, addbymyemail 
 		log.Println(iter)
 		return newArray
 	}
-
-	// if iter3 != nil {
-
-	// 	log.Println(iter)
-	// 	return newArray
-	// }
 	time_output := session.Query("SELECT * FROM register;").Iter()
 	fmt.Println("output: ", time_output)
 
@@ -681,6 +580,7 @@ func AddFriend(emailf string, myemail string, addedEmailf1 string, addbymyemail 
 	return newArray
 }
 
+//view groups
 func ViewGroupList(myEmail string) [][2]string {
 	Tables()
 	if session == nil {
@@ -713,6 +613,7 @@ func ViewGroupList(myEmail string) [][2]string {
 	return groups
 }
 
+//view friends as a list - private chat
 func ViewFriendList(email string) [][3]string {
 	Tables()
 
@@ -741,6 +642,7 @@ func ViewFriendList(email string) [][3]string {
 	return friends
 }
 
+//update friends
 func AddFriendUpdate(addedEmailf1 string, addbymyemail string, myemail string, emailf string) string {
 	Tables()
 
@@ -765,8 +667,6 @@ func AddFriendUpdate(addedEmailf1 string, addbymyemail string, myemail string, e
 		newArray = addbymyemail
 
 		iter1.Scan()
-
-		// return newArray
 	}
 
 	if err != nil {
